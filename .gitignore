@@ -1,0 +1,12 @@
+# 忽略所有名为 node_modules 的文件夹
+node_modules/
+
+# 忽略系统生成的临时文件（可选，推荐）
+.DS_Store
+Thumbs.db
+
+# 忽略打包后的文件（可选）
+dist/
+build/
+
+*.log
