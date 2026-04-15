@@ -1,5 +1,13 @@
 import { createApp } from 'vue'
-import './style.css'
+import { createPinia } from 'pinia'
 import App from './App.vue'
+import router from './router'
+import GlobalButton from './components/GlobalButton.vue'
+import './style.css'
+import './assets/lesson-base.css'
 
-createApp(App).mount('#app')
+const app = createApp(App)
+
+app.component('GlobalButton', GlobalButton)
+
+app.use(createPinia()).use(router).mount('#app')
