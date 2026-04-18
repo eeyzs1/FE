@@ -1,0 +1,33 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Nav from '../components/Nav.astro';
+
+const title = "About Page";
+const description = "Learn about this Astro project";
+---
+
+<BaseLayout title={title}>
+  <Nav slot="header" />
+  <h1>{title}</h1>
+  <p>{description}</p>
+  <a href="/" class="back-link">← Back to Home</a>
+</BaseLayout>
+
+<style>
+  h1 {
+    font-size: 2rem;
+    margin-bottom: 12px;
+  }
+  p {
+    color: #374151;
+    line-height: 1.75;
+    margin-bottom: 16px;
+  }
+  .back-link {
+    color: #3b82f6;
+    text-decoration: none;
+  }
+  .back-link:hover {
+    text-decoration: underline;
+  }
+</style>

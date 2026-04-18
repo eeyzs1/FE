@@ -1,9 +1,9 @@
 {
   "$schema": "https://json.schemastore.org/web-manifest-combined.json",
-  "name": "qwik-project-name",
-  "short_name": "Welcome to Qwik",
+  "name": "Qwik 大师修炼教程",
+  "short_name": "Qwik 教程",
   "start_url": ".",
   "display": "standalone",
   "background_color": "#fff",
-  "description": "A Qwik project app."
+  "description": "从零到大师的 Qwik 完整学习路线，14 课掌握 Qwik 全栈开发"
 }

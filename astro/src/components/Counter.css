@@ -1,0 +1,33 @@
+.counter {
+  text-align: center;
+  padding: 24px;
+}
+
+.counter-value {
+  font-size: 3rem;
+  margin: 0 0 16px;
+}
+
+.counter-buttons {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+
+.counter-btn {
+  padding: 8px 20px;
+  font-size: 1.25rem;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.counter-btn--outline {
+  border: 1px solid #e5e7eb;
+  background: #f9fafb;
+}
+
+.counter-btn--primary {
+  border: none;
+  background: linear-gradient(83.21deg, #3245ff 0%, #bc52ee 100%);
+  color: white;
+}

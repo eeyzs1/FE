@@ -1,0 +1,49 @@
+---
+const currentPath = Astro.url.pathname;
+
+const links = [
+  { href: "/", label: "Home" },
+  { href: "/about", label: "About" },
+  { href: "/blog", label: "Blog" },
+  { href: "/playground", label: "Playground" },
+];
+
+function isActive(href: string, current: string): boolean {
+  if (href === "/") return current === "/";
+  return current === href || current.startsWith(href + "/");
+}
+---
+
+<nav>
+  <ul>
+    {links.map((link) => (
+      <li class={isActive(link.href, currentPath) ? "active" : ""}>
+        <a href={link.href}>{link.label}</a>
+      </li>
+    ))}
+  </ul>
+</nav>
+
+<style>
+  ul {
+    display: flex;
+    gap: 24px;
+    list-style: none;
+    padding: 16px 24px;
+    margin: 0;
+    background: #f9fafb;
+    border-radius: 8px;
+  }
+  li a {
+    text-decoration: none;
+    color: #6b7280;
+    font-weight: 500;
+    transition: color 0.2s;
+  }
+  li a:hover {
+    color: #111827;
+  }
+  li.active a {
+    color: #3b82f6;
+  }
+</style>

@@ -1,0 +1,37 @@
+---
+interface Props {
+  title: string;
+}
+
+const { title } = Astro.props;
+---
+
+<div class="greeting">
+  <h1>{title}</h1>
+  <p>Current time: <span id="greeting-time"></span></p>
+</div>
+
+<script>
+  function updateTime() {
+    const el = document.getElementById('greeting-time');
+    if (el) {
+      el.textContent = new Date().toLocaleString();
+    }
+  }
+  updateTime();
+  setInterval(updateTime, 1000);
+</script>
+
+<style>
+  .greeting {
+    padding: 24px;
+    text-align: center;
+  }
+  h1 {
+    font-size: 2rem;
+    margin-bottom: 8px;
+  }
+  p {
+    color: #6b7280;
+  }
+</style>

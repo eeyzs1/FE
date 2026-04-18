@@ -18,8 +18,5 @@
     "typescript": "~5.9.3",
     "vite": "^8.0.1"
   },
-  "dependencies": {
-    "@skeletonlabs/skeleton": "^4.13.0",
-    "@sveltejs/kit": "^2.55.0"
-  }
+  "dependencies": {}
 }

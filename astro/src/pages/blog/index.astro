@@ -1,0 +1,43 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Nav from '../../components/Nav.astro';
+import Card from '../../components/Card.astro';
+import { getCollection } from 'astro:content';
+
+const posts = await getCollection('blog', ({ data }) => !data.draft);
+const sortedPosts = posts.sort(
+  (a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf()
+);
+---
+
+<BaseLayout title="Blog">
+  <Nav slot="header" />
+  <h1>Blog</h1>
+  <div class="cards">
+    {sortedPosts.map((post) => (
+      <a href={`/blog/${post.id}`} class="card-link">
+        <Card
+          title={post.data.title}
+          description={post.data.description}
+          imageUrl={post.data.heroImage}
+        />
+      </a>
+    ))}
+  </div>
+</BaseLayout>
+
+<style>
+  h1 {
+    font-size: 2rem;
+    margin-bottom: 24px;
+  }
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 24px;
+  }
+  .card-link {
+    text-decoration: none;
+    color: inherit;
+  }
+</style>

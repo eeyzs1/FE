@@ -1,0 +1,29 @@
+---
+interface Props {
+  themeColor: string;
+}
+
+const { themeColor } = Astro.props;
+---
+
+<div class="theme-card">
+  <h2>Theme Card</h2>
+  <p>This card is styled with a dynamic theme color.</p>
+</div>
+
+<style define:vars={{ themeColor }}>
+  .theme-card {
+    border: 2px solid var(--themeColor);
+    border-radius: 12px;
+    padding: 24px;
+    background: color-mix(in srgb, var(--themeColor) 10%, white);
+  }
+  h2 {
+    margin: 0 0 8px;
+    color: var(--themeColor);
+  }
+  p {
+    margin: 0;
+    color: #374151;
+  }
+</style>

@@ -1,0 +1,56 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Nav from '../../components/Nav.astro';
+
+export function getStaticPaths() {
+  return [
+    { params: { id: '1' }, props: { project: { name: 'Project Alpha', description: 'A web application built with Astro' } } },
+    { params: { id: '2' }, props: { project: { name: 'Project Beta', description: 'A blog platform with content collections' } } },
+    { params: { id: '3' }, props: { project: { name: 'Project Gamma', description: 'An e-commerce site with React islands' } } },
+  ];
+}
+
+const { id } = Astro.params;
+const { project } = Astro.props;
+
+if (!project) {
+  return Astro.redirect('/404');
+}
+---
+
+<BaseLayout title={project.name}>
+  <Nav slot="header" />
+  <article>
+    <a href="/" class="back-link">← Home</a>
+    <h1>{project.name}</h1>
+    <p class="description">{project.description}</p>
+    <p class="project-id">Project ID: {id}</p>
+  </article>
+</BaseLayout>
+
+<style>
+  .back-link {
+    color: #3b82f6;
+    text-decoration: none;
+    font-size: 0.875rem;
+  }
+  .back-link:hover {
+    text-decoration: underline;
+  }
+  article {
+    margin-top: 16px;
+  }
+  h1 {
+    font-size: 2rem;
+    margin: 16px 0 8px;
+  }
+  .description {
+    line-height: 1.75;
+    color: #374151;
+  }
+  .project-id {
+    margin-top: 16px;
+    color: #6b7280;
+    font-size: 0.875rem;
+  }
+</style>
