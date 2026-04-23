@@ -47,6 +47,31 @@ const { count: counterCount, doubled: counterDoubled } = storeToRefs(counter)
 // 方法可以直接解构（不需要 storeToRefs）
 const { increment, decrement, reset } = counter
 
+// --- Option Store 语法 ---
+const optionStoreCode = `// Option Store 语法（传统写法）
+// 与 Setup Store 功能完全等价，只是风格不同
+
+export const useCounterOption = defineStore('counter', {
+  // state — 类似 data()
+  state: () => ({
+    count: 0,
+    name: '计数器'
+  }),
+
+  // getters — 类似 computed
+  getters: {
+    doubled: (state) => state.count * 2,
+    display: (state) => \`\${state.name}: \${state.count}\`
+  },
+
+  // actions — 类似 methods
+  actions: {
+    increment() { this.count++ },
+    decrement() { this.count-- },
+    reset() { this.count = 0 }
+  }
+})`
+
 // --- $subscribe 演示 ---
 const subscribeLog = ref<string[]>([])
 counter.$subscribe((mutation, state) => {
@@ -136,6 +161,29 @@ store.increment() // 调用 action
 store.$reset()    // 重置到初始值
 store.$patch({})  // 批量修改</pre>
         </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>🔹 Option Store 语法（传统写法）</h2>
+      <div class="card">
+        <p>Pinia 有两种定义 Store 的方式，功能完全等价：</p>
+        <div class="code-block">
+          <pre>{{ optionStoreCode }}</pre>
+        </div>
+        <table class="comm-table">
+          <thead>
+            <tr><th>特性</th><th>Setup Store（推荐）</th><th>Option Store（传统）</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>state</td><td>ref() / reactive()</td><td>state: () => ({})</td></tr>
+            <tr><td>getters</td><td>computed()</td><td>getters: {}</td></tr>
+            <tr><td>actions</td><td>普通函数</td><td>actions: {}</td></tr>
+            <tr><td>this</td><td>不需要</td><td>actions 中用 this 访问 state</td></tr>
+            <tr><td>推荐度</td><td>⭐ 更灵活、更符合 Composition API</td><td>熟悉 Options API 的开发者</td></tr>
+          </tbody>
+        </table>
+        <p class="tip">本项目所有 Store 都使用 Setup Store 语法，更灵活且与 Composition API 风格一致</p>
       </div>
     </div>
 
@@ -332,4 +380,8 @@ pinia.use(piniaLogger)</pre>
   margin-top: 12px; font-size: 16px;
 }
 .cart-total strong { color: #42b883; }
+.comm-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 12px; }
+.comm-table th { background: #42b883; color: white; padding: 10px; text-align: left; font-weight: normal; }
+.comm-table td { padding: 10px; border-bottom: 1px solid #e9ecef; vertical-align: top; }
+.comm-table tr:hover td { background: #f8f9fa; }
 </style>

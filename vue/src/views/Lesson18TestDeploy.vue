@@ -15,7 +15,7 @@ const testCode = `// Vue 推荐的测试工具：
 // 单元测试示例 (Counter.spec.ts)
 import { describe, it, expect } from 'vitest'
 import { mount } from '@vue/test-utils'
-import Counter from './Counter.vue'
+// import Counter from './Counter.vue'
 
 describe('Counter', () => {
   it('renders initial count', () => {

@@ -56,11 +56,43 @@ const vDebounce = {
   },
 }
 
+// 指令参数和修饰符演示
+const vHighlight = {
+  mounted(el: HTMLElement, binding: DirectiveBinding<string>) {
+    applyHighlight(el, binding)
+  },
+  updated(el: HTMLElement, binding: DirectiveBinding<string>) {
+    applyHighlight(el, binding)
+  },
+}
+
+function applyHighlight(el: HTMLElement, binding: DirectiveBinding<string>) {
+  const color = binding.value || '#42b883'
+  const arg = binding.arg
+  const modifiers = binding.modifiers
+
+  if (arg === 'border') {
+    el.style.border = `3px solid ${color}`
+    el.style.background = ''
+  } else if (arg === 'bg') {
+    el.style.background = color
+    el.style.border = ''
+  } else {
+    el.style.color = color
+    el.style.background = ''
+    el.style.border = ''
+  }
+
+  el.style.fontWeight = modifiers.bold ? 'bold' : ''
+  el.style.fontStyle = modifiers.italic ? 'italic' : ''
+}
+
 // 指令演示数据
 const focusDemoKey = ref(0)
 const textColor = ref('#42b883')
 const isAdmin = ref(true)
 const debouncedValue = ref('')
+const highlightColor = ref('#42b883')
 
 function onDebouncedInput(val: string) {
   debouncedValue.value = val
@@ -124,6 +156,64 @@ const dmFormatted = ref('hello world')
         <input v-debounce="onDebouncedInput" placeholder="输入后 500ms 才触发" />
         <p>防抖后的值：<strong>{{ debouncedValue || '（空）' }}</strong></p>
         <p class="tip">v-debounce 在 mounted 中添加 input 事件监听，用 setTimeout 实现防抖</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>🔹 指令钩子函数（Directive Hooks）</h2>
+      <div class="card">
+        <p>自定义指令本质是包含生命周期钩子的对象：</p>
+        <div class="code-block">
+          <pre>// 自定义指令的完整钩子函数
+const myDirective = {
+  created(el, binding, vnode) { },    // 绑定元素的 attribute 前
+  beforeMount(el, binding) { },       // 元素插入 DOM 前
+  mounted(el, binding) { },           // 父组件挂载后
+  beforeUpdate(el, binding) { },      // 更新前
+  updated(el, binding) { },           // 更新后
+  beforeUnmount(el, binding) { },     // 卸载前
+  unmounted(el, binding) { },         // 卸载后
+}
+
+// 简写：当 mounted 和 updated 行为相同时
+const vFocus = (el: HTMLElement) => { el.focus() }
+
+// binding 对象包含：
+// binding.value     — 指令的绑定值 v-xxx="value"
+// binding.oldValue  — 之前的值
+// binding.arg       — 参数 v-xxx:arg
+// binding.modifiers — 修饰符 v-xxx.mod</pre>
+        </div>
+        <p class="tip">实际开发中最常用的是 mounted 和 updated，如果两者逻辑相同可以用函数简写</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>🔹 指令参数与修饰符 — v-highlight:arg.mod</h2>
+      <div class="card">
+        <p>选择颜色：<input type="color" v-model="highlightColor" /></p>
+        <p v-highlight="highlightColor">v-highlight — 默认设置文字颜色</p>
+        <p v-highlight:bg="highlightColor" style="padding:4px 8px;border-radius:4px;">v-highlight:bg — 设置背景色</p>
+        <p v-highlight:border="highlightColor" style="padding:4px 8px;border-radius:4px;">v-highlight:border — 设置边框</p>
+        <p v-highlight:bg.bold="highlightColor" style="padding:4px 8px;border-radius:4px;">v-highlight:bg.bold — 背景色 + 加粗</p>
+        <p v-highlight:border.bold.italic="highlightColor" style="padding:4px 8px;border-radius:4px;">v-highlight:border.bold.italic — 边框 + 加粗 + 斜体</p>
+        <div class="code-block">
+          <pre>// 指令参数：v-highlight:bg 中的 "bg" → binding.arg
+// 指令修饰符：.bold → binding.modifiers.bold = true
+
+// 子组件实现
+function applyHighlight(el, binding) {
+  const color = binding.value      // 颜色值
+  const arg = binding.arg          // 'bg' | 'border' | undefined
+  const mods = binding.modifiers   // { bold: true, italic: false }
+
+  if (arg === 'bg') el.style.background = color
+  if (arg === 'border') el.style.border = `3px solid ${color}`
+  if (mods.bold) el.style.fontWeight = 'bold'
+  if (mods.italic) el.style.fontStyle = 'italic'
+}</pre>
+        </div>
+        <p class="tip">binding.arg 获取参数（v-highlight:bg 中的 "bg"），binding.modifiers 获取修饰符（.bold → { bold: true }）</p>
       </div>
     </div>
 

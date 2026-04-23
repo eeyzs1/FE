@@ -54,6 +54,22 @@ function addStudent() {
   newStudentName.value = ''
 }
 
+// --- v-for 变体示例 ---
+const userInfo = ref({
+  name: '张三',
+  age: 25,
+  city: '北京',
+  job: '前端工程师',
+})
+
+const rangeCount = ref(5)
+
+// --- template v-for ---
+const groups = ref([
+  { title: '前端', members: ['Vue', 'React', 'Angular'] },
+  { title: '后端', members: ['Node.js', 'Python', 'Go'] },
+])
+
 function removeStudent(id: number) {
   students.value = students.value.filter(s => s.id !== id)
 }
@@ -115,7 +131,67 @@ function removeStudent(id: number) {
     </div>
 
     <div class="section">
-      <h2>📝 v-if vs v-show</h2>
+      <h2>� v-for 变体</h2>
+
+      <div class="card">
+        <h3>遍历对象 (value, key, index)</h3>
+        <div class="obj-list">
+          <div v-for="(value, key, index) in userInfo" :key="key" class="obj-item">
+            <span class="idx">{{ index }}</span>
+            <span class="key">{{ key }}</span>
+            <span class="val">{{ value }}</span>
+          </div>
+        </div>
+        <div class="code-block">
+          <pre>// v-for 遍历对象 — (value, key, index)
+&lt;div v-for="(value, key, index) in userInfo" :key="key"&gt;
+  {{ index }}: {{ key }} = {{ value }}
+&lt;/div&gt;
+
+// 三个参数的顺序：value → key → index
+// 也可以只用 (value, key)</pre>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>遍历数字范围 (n in count)</h3>
+        <label>范围：<input type="number" v-model.number="rangeCount" min="1" max="20" /></label>
+        <div class="range-dots">
+          <span v-for="n in rangeCount" :key="n" class="dot">{{ n }}</span>
+        </div>
+        <div class="code-block">
+          <pre>// v-for 遍历数字范围 — 从 1 开始
+&lt;span v-for="n in 5" :key="n"&gt;{{ n }}&lt;/span&gt;
+// 渲染：1 2 3 4 5
+
+// 注意：n 从 1 开始，不是 0</pre>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>template v-for（无额外 DOM 节点）</h3>
+        <div v-for="group in groups" :key="group.title" class="group-block">
+          <h4>{{ group.title }}</h4>
+          <div class="group-members">
+            <span v-for="member in group.members" :key="member" class="tag">{{ member }}</span>
+          </div>
+        </div>
+        <div class="code-block">
+          <pre>// &lt;template v-for&gt; 不会产生额外 DOM 节点
+&lt;template v-for="group in groups" :key="group.title"&gt;
+  &lt;h4&gt;{{ group.title }}&lt;/h4&gt;
+  &lt;span v-for="m in group.members" :key="m"&gt;{{ m }}&lt;/span&gt;
+&lt;/template&gt;
+
+// 对比：用 &lt;div v-for&gt; 会多一层 div 包裹
+// &lt;template&gt; 是"透明"的，只渲染内部内容</pre>
+        </div>
+        <p class="tip">template v-for 适合需要渲染多个同级元素但不想加包裹 div 的场景</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>📝 知识要点</h2>
       <div class="knowledge">
         <div class="point">
           <strong>v-if</strong>
@@ -168,4 +244,32 @@ button.active { background: #2d7a5a; }
   border-radius: 8px; font-size: 14px;
 }
 .add-form input:focus { outline: none; border-color: #42b883; }
+.obj-list { display: flex; flex-direction: column; gap: 6px; margin: 8px 0; }
+.obj-item {
+  display: flex; gap: 12px; align-items: center;
+  padding: 8px 14px; background: white; border-radius: 8px;
+  border: 1px solid #e9ecef; font-size: 14px;
+}
+.obj-item .idx {
+  width: 24px; height: 24px; border-radius: 50%;
+  background: #42b883; color: white;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: bold;
+}
+.obj-item .key { min-width: 50px; color: #666; font-family: monospace; }
+.obj-item .val { font-weight: bold; color: #333; }
+.range-dots { display: flex; gap: 8px; margin: 10px 0; flex-wrap: wrap; }
+.dot {
+  width: 36px; height: 36px; border-radius: 50%;
+  background: #42b883; color: white;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: bold; font-size: 14px;
+}
+.group-block { padding: 12px; background: white; border-radius: 8px; border: 1px solid #e9ecef; margin-bottom: 8px; }
+.group-block h4 { margin: 0 0 8px; color: #42b883; font-size: 15px; }
+.group-members { display: flex; gap: 6px; flex-wrap: wrap; }
+.tag {
+  background: #42b883; color: white; padding: 3px 10px;
+  border-radius: 12px; font-size: 12px;
+}
 </style>

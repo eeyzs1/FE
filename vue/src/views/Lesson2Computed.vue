@@ -149,6 +149,17 @@ watch(
   },
   { flush: 'post' }
 )
+// --- getter 语法 ---
+// 监听 reactive 对象的某个属性时，必须使用 getter 函数
+const state = reactive({ count: 0, name: 'Vue' })
+const getterLog = ref<string[]>([])
+watch(
+  () => state.count,
+  (newVal) => {
+    getterLog.value.push(`state.count 变为 ${newVal}`)
+    if (getterLog.value.length > 6) getterLog.value.shift()
+  }
+)
 
 // --- 清理副作用 (onWatcherCleanup) ---
 // 当侦听器重新执行前，可以清理上一次的副作用（如取消请求、清除定时器）
@@ -175,19 +186,6 @@ watch(cleanupInput, (newVal, oldVal, onCleanup) => {
 const stoppableVal = ref(0)
 const stoppableLog = ref<string[]>([])
 let stopHandle: WatchStopHandle | null = null
-
-// --- getter 语法 ---
-// 监听 reactive 对象的某个属性时，必须使用 getter 函数
-const state = reactive({ count: 0, name: 'Vue' })
-const getterLog = ref<string[]>([])
-
-watch(
-  () => state.count,
-  (newVal) => {
-    getterLog.value.push(`state.count 变为 ${newVal}`)
-    if (getterLog.value.length > 6) getterLog.value.shift()
-  }
-)
 
 function startWatcher() {
   stoppableLog.value = []

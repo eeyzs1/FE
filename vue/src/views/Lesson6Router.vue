@@ -56,6 +56,17 @@ const routeInfo = computed(() => ({
   query: { ...route.query },
   fullPath: route.fullPath,
 }))
+
+// --- 路由守卫模拟 ---
+const guardLog = ref<string[]>([])
+
+function simulateGuard() {
+  guardLog.value = []
+  guardLog.value.push('🟢 [全局守卫] router.beforeEach — 每次导航前触发')
+  guardLog.value.push('🔵 [路由独享] beforeEnter — 进入该路由时触发')
+  guardLog.value.push('🟡 [组件内] onBeforeRouteLeave — 离开该组件时触发')
+  guardLog.value.push('✅ 守卫链通过，导航放行！')
+}
 </script>
 
 <template>
@@ -127,7 +138,58 @@ const routeInfo = computed(() => ({
     </div>
 
     <div class="section">
-      <h2>📝 路由要点</h2>
+      <h2>�️ 路由守卫 — Navigation Guards</h2>
+      <div class="card">
+        <button @click="simulateGuard">模拟路由守卫执行</button>
+        <div v-if="guardLog.length" class="log-area">
+          <p v-for="(log, i) in guardLog" :key="i" class="log-item">{{ log }}</p>
+        </div>
+        <div class="code-block">
+          <pre>// 1️⃣ 全局守卫 — 对所有路由生效
+router.beforeEach((to, from) => {
+  console.log('导航到:', to.path)
+  // return false 可阻止导航
+  // return '/login' 可重定向
+})
+
+router.afterEach((to, from) => {
+  // 导航完成后执行（如页面统计）
+})
+
+// 2️⃣ 路由独享守卫 — 写在路由配置中
+const routes = [
+  {
+    path: '/admin',
+    beforeEnter: (to, from) => {
+      // 仅对 /admin 生效
+      if (!isAdmin()) return '/login'
+    }
+  }
+]
+
+// 3️⃣ 组件内守卫 — 写在组件中
+import { onBeforeRouteLeave, onBeforeRouteUpdate } from 'vue-router'
+
+onBeforeRouteLeave((to, from) => {
+  // 离开当前组件时触发（如表单未保存提示）
+  const answer = confirm('确定离开？未保存的数据将丢失')
+  if (!answer) return false
+})
+
+onBeforeRouteUpdate((to, from) => {
+  // 路由参数变化但组件复用时触发
+  // 如 /user/1 → /user/2
+})</pre>
+        </div>
+        <p class="tip">🟢 全局守卫：router.beforeEach / afterEach，对所有路由生效</p>
+        <p class="tip">🔵 路由独享守卫：beforeEnter，只在进入该路由时触发</p>
+        <p class="tip">🟡 组件内守卫：onBeforeRouteLeave / onBeforeRouteUpdate，与组件生命周期绑定</p>
+        <p class="tip">守卫返回 false 可取消导航，返回路由路径可重定向</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>�📝 路由要点</h2>
       <div class="knowledge">
         <div class="point">
           <strong>RouterView</strong>

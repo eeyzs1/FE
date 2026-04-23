@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { ref, onUpdated } from 'vue'
+import SlottedChild from '../components/SlottedChild.vue'
+import DeepChild from '../components/DeepChild.vue'
 
 // ==================== 第16课：SFC 深入 + 工具链 + 渲染机制 ====================
 
@@ -42,6 +44,16 @@ const currentStep = ref(0)
 function nextStep() {
   currentStep.value = (currentStep.value + 1) % renderSteps.value.length
 }
+
+// --- :slotted() / :deep() 演示 ---
+const slottedItems = ref(['Vue', 'React', 'Angular'])
+function addSlottedItem() {
+  slottedItems.value.push(`新项${slottedItems.value.length + 1}`)
+}
+function removeSlottedItem() {
+  if (slottedItems.value.length) slottedItems.value.pop()
+}
+const deepEnabled = ref(false)
 function resetSteps() {
   currentStep.value = 0
 }
@@ -167,25 +179,75 @@ MyComponent.vue
       </div>
 
       <div class="card">
-        <h3>其他 SFC CSS 功能</h3>
-        <div class="code-block">
-          <pre>// scoped — 样式只作用于当前组件
-&lt;style scoped&gt;  .btn { color: red; }  &lt;/style&gt;
-
-// :deep() — 穿透 scoped，影响子组件
-:deep(.child-class) { color: blue; }
-
-// :slotted() — 控制 slot 插入内容的样式
-:slotted(.slot-content) { font-weight: bold; }
-
-// :global() — 在 scoped 中声明全局样式
-:global(.global-class) { color: green; }
-
-// CSS Modules — 自动生成唯一类名
-&lt;style module&gt;  .title { font-size: 24px; }  &lt;/style&gt;
-
-// 通过 $style.title 访问</pre>
+        <h3>:slotted() — 控制插槽内容样式</h3>
+        <p>父组件传入的插槽内容，子组件可以用 :slotted() 设置样式：</p>
+        <div class="btn-group">
+          <button @click="addSlottedItem">➕ 添加</button>
+          <button @click="removeSlottedItem">➖ 移除</button>
         </div>
+        <SlottedChild>
+          <p v-for="item in slottedItems" :key="item" class="slotted-item">{{ item }}</p>
+        </SlottedChild>
+        <div class="code-block">
+          <pre>// 子组件 &lt;style scoped&gt;
+// 普通 scoped 选择器无法影响插槽内容
+// :slotted() 可以穿透到插槽内容
+
+:slotted(.slotted-item) {
+  background: #e8f5e9;
+  border-left: 3px solid #42b883;
+  color: #42b883;
+  font-weight: bold;
+}
+
+// ❌ .slotted-item { } — 不生效！
+// ✅ :slotted(.slotted-item) { } — 生效！</pre>
+        </div>
+        <p class="tip">:slotted() 只影响通过插槽传入的内容，不影响子组件自身的内容</p>
+      </div>
+
+      <div class="card">
+        <h3>:deep() — 穿透 scoped 样式到子组件</h3>
+        <p>scoped 样式无法影响子组件内部，:deep() 可以穿透：</p>
+        <label class="toggle">
+          <input type="checkbox" v-model="deepEnabled" />
+          {{ deepEnabled ? '✅ :deep() 已启用' : '❌ :deep() 未启用' }}
+        </label>
+        <div :class="{ 'deep-active': deepEnabled }">
+          <DeepChild />
+        </div>
+        <div class="code-block">
+          <pre>// 父组件 &lt;style scoped&gt;
+// 普通 scoped 选择器无法影响子组件内部
+// :deep() 可以穿透到子组件内部
+
+.deep-active :deep(.deep-target) {
+  color: #e91e63 !important;  // 粉红色
+  font-size: 18px;
+}
+.deep-active :deep(.deep-label) {
+  color: #e91e63 !important;
+  text-decoration: underline;
+}
+
+// ❌ .deep-target { } — 不生效！
+// ✅ :deep(.deep-target) { } — 生效！</pre>
+        </div>
+        <p class="tip">:deep() 应该尽量避免使用，它破坏了 scoped 的封装性。仅在需要覆盖第三方组件样式时使用。</p>
+      </div>
+
+      <div class="card">
+        <h3>:global() — 在 scoped 中声明全局样式</h3>
+        <div class="code-block">
+          <pre>// &lt;style scoped&gt; 中声明全局样式
+:global(.global-class) {
+  color: green;
+}
+
+// 等价于在 &lt;style&gt;（非 scoped）中定义
+// 但可以和 scoped 样式写在同一个块中</pre>
+        </div>
+        <p class="tip">:global() 很少使用，通常直接写一个非 scoped 的 &lt;style&gt; 块更清晰</p>
       </div>
     </div>
 
@@ -376,7 +438,8 @@ const App = defineComponent(() =&gt; {
       <div class="knowledge">
         <div class="point"><strong>SFC</strong><span>单文件组件，template + script + style 一体化</span></div>
         <div class="point"><strong>scoped</strong><span>样式只作用于当前组件，通过 data-v-xxx 属性实现</span></div>
-        <div class="point"><strong>:deep()</strong><span>穿透 scoped 样式到子组件</span></div>
+        <div class="point"><strong>:deep()</strong><span>穿透 scoped 样式到子组件，慎用</span></div>
+        <div class="point"><strong>:slotted()</strong><span>控制插槽内容的样式，子组件 scoped 中使用</span></div>
         <div class="point"><strong>v-bind() in CSS</strong><span>在 style 中绑定响应式数据</span></div>
         <div class="point"><strong>Vite</strong><span>开发服务器 + 构建工具，ESM 原生支持</span></div>
         <div class="point"><strong>编译</strong><span>template → render() 函数（编译时优化）</span></div>
@@ -451,6 +514,12 @@ const App = defineComponent(() =&gt; {
 }
 .dt-step strong { min-width: 100px; color: #1a73e8; }
 .dt-step span { color: #555; font-size: 13px; }
+.deep-active :deep(.deep-target) {
+  color: #e91e63 !important; font-size: 18px;
+}
+.deep-active :deep(.deep-label) {
+  color: #e91e63 !important; text-decoration: underline;
+}
 </style>
 
 <style module>

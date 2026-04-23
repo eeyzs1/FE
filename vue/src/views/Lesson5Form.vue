@@ -27,6 +27,9 @@ const agreed = ref(false)
 const skills = ref<string[]>([])
 const allSkills = ['JavaScript', 'TypeScript', 'Vue', 'React', 'Node.js', 'Python']
 
+const fruits = ['苹果', '香蕉', '橙子', '葡萄', '西瓜']
+const selectedFruits = ref<string[]>([])
+
 // --- 单选框 ---
 const gender = ref('')
 const genders = ['男', '女', '其他']
@@ -120,6 +123,30 @@ function submitForm() {
           </label>
         </div>
         <p>已选：{{ skills.join('、') || '无' }}</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>🔹 多选框绑定数组（v-model + :value）</h2>
+      <div class="card">
+        <p>选择你喜欢的水果：</p>
+        <div class="checkbox-group">
+          <label v-for="fruit in fruits" :key="fruit" class="checkbox-label">
+            <input type="checkbox" :value="fruit" v-model="selectedFruits" />
+            {{ fruit }}
+          </label>
+        </div>
+        <p>已选水果：{{ selectedFruits.join('、') || '无' }}</p>
+        <div class="code-block">
+          <pre>// 多个 checkbox 绑定同一个数组
+const fruits = ['苹果', '香蕉', '橙子']
+const selected = ref&lt;string[]&gt;([])
+
+// 模板中：每个 checkbox 的 :value 不同，v-model 指向同一数组
+// &lt;input type="checkbox" :value="fruit" v-model="selected" /&gt;
+// 勾选时 value 被 push 进数组，取消勾选时从数组中移除</pre>
+        </div>
+        <p class="tip">当多个 checkbox 的 v-model 绑定同一个数组时，勾选会将 :value 的值加入数组，取消勾选会移除。这是 Vue 处理多选的惯用模式。</p>
       </div>
     </div>
 

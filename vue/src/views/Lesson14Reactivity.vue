@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, reactive, computed, h } from 'vue'
+import { ref, reactive, computed, h, markRaw, toRaw, isReactive, isRef, isProxy } from 'vue'
 
 // ==================== 第14课：深入响应式系统 + 渲染函数 ====================
 
@@ -85,6 +85,29 @@ function triggerRender() {
   renderCount.value++
   showRenderDemo.value = true
 }
+
+// --- 响应式工具函数 ---
+const rawObj = { name: '原始对象', items: [1, 2, 3] }
+const markedObj = markRaw(rawObj)
+const reactiveFromMarked = reactive(markedObj)
+
+const checkRef = ref(42)
+const checkReactive = reactive({ x: 1 })
+const checkPlain = { y: 2 }
+
+const checkResults = computed(() => ({
+  isRef_ref: isRef(checkRef),
+  isReactive_ref: isReactive(checkRef),
+  isRef_reactive: isRef(checkReactive),
+  isReactive_reactive: isReactive(checkReactive),
+  isRef_plain: isRef(checkPlain),
+  isReactive_plain: isReactive(checkPlain),
+  isReactive_marked: isReactive(reactiveFromMarked),
+  isProxy_marked: isProxy(reactiveFromMarked),
+}))
+
+const rawFromReactive = toRaw(checkReactive)
+const isSameObject = rawFromReactive === checkReactive
 </script>
 
 <template>
@@ -234,7 +257,82 @@ export default {
     </div>
 
     <div class="section">
-      <h2>📝 知识要点</h2>
+      <h2>� 响应式工具函数</h2>
+
+      <div class="card">
+        <h3>isRef / isReactive / isProxy — 类型检测</h3>
+        <div class="check-grid">
+          <div class="check-item">
+            <span>isRef(ref(42))</span>
+            <span :class="checkResults.isRef_ref ? 'tag-yes' : 'tag-no'">{{ checkResults.isRef_ref }}</span>
+          </div>
+          <div class="check-item">
+            <span>isReactive(ref(42))</span>
+            <span :class="checkResults.isReactive_ref ? 'tag-yes' : 'tag-no'">{{ checkResults.isReactive_ref }}</span>
+          </div>
+          <div class="check-item">
+            <span>isRef(reactive({}))</span>
+            <span :class="checkResults.isRef_reactive ? 'tag-yes' : 'tag-no'">{{ checkResults.isRef_reactive }}</span>
+          </div>
+          <div class="check-item">
+            <span>isReactive(reactive({}))</span>
+            <span :class="checkResults.isReactive_reactive ? 'tag-yes' : 'tag-no'">{{ checkResults.isReactive_reactive }}</span>
+          </div>
+          <div class="check-item">
+            <span>isReactive(普通对象)</span>
+            <span :class="checkResults.isReactive_plain ? 'tag-yes' : 'tag-no'">{{ checkResults.isReactive_plain }}</span>
+          </div>
+          <div class="check-item">
+            <span>isReactive(markRaw对象)</span>
+            <span :class="checkResults.isReactive_marked ? 'tag-yes' : 'tag-no'">{{ checkResults.isReactive_marked }}</span>
+          </div>
+        </div>
+        <p class="tip">isRef() 检测是否为 ref 对象，isReactive() 检测是否为 reactive 代理，isProxy() 检测是否为任何 Proxy</p>
+      </div>
+
+      <div class="card">
+        <h3>markRaw — 标记对象永不转为响应式</h3>
+        <p>markRaw 后的对象即使传给 reactive 也不会被代理：</p>
+        <p>isReactive(reactive(markRaw(obj))) = <span :class="checkResults.isReactive_marked ? 'tag-yes' : 'tag-no'">{{ checkResults.isReactive_marked }}</span></p>
+        <div class="code-block">
+          <pre>// markRaw：标记对象永远不会转为响应式代理
+const rawObj = { name: '原始对象' }
+const marked = markRaw(rawObj)
+
+// 即使传给 reactive 也不会被代理
+const state = reactive(marked)
+isReactive(state) // false！
+
+// 典型场景：第三方库实例、不可变数据
+// 如：const chart = markRaw(new Chart(ctx, config))</pre>
+        </div>
+        <p class="tip">markRaw 常用于第三方库实例（如 ECharts、Mapbox GL），避免 Vue 深层代理导致的性能问题</p>
+      </div>
+
+      <div class="card">
+        <h3>toRaw — 获取原始对象</h3>
+        <p>toRaw 从 reactive 代理中取出原始对象（不触发响应式）：</p>
+        <p>toRaw(reactive({})) === 原对象？<span :class="!isSameObject ? 'tag-yes' : 'tag-no'">{{ !isSameObject ? '是不同对象（代理≠原始）' : '相同' }}</span></p>
+        <div class="code-block">
+          <pre>// toRaw：从 reactive 代理中获取原始对象
+const state = reactive({ count: 0 })
+const raw = toRaw(state)
+
+// raw === state 为 false（raw 是原始对象，state 是 Proxy）
+// 修改 raw 不会触发响应式更新
+raw.count++ // 不会触发视图更新！
+
+// 典型场景：
+// 1. 传递给不需要响应式的第三方库
+// 2. 性能敏感的读取操作
+// 3. 调试时查看原始数据</pre>
+        </div>
+        <p class="tip">toRaw 返回的原始对象修改不会触发视图更新，仅在需要绕过响应式时使用</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>� 知识要点</h2>
       <div class="knowledge">
         <div class="point"><strong>Proxy</strong><span>Vue 3 响应式底层，拦截 get/set 操作</span></div>
         <div class="point"><strong>track/trigger</strong><span>get 时追踪依赖，set 时触发更新</span></div>
@@ -244,6 +342,10 @@ export default {
         <div class="point"><strong>h()</strong><span>创建虚拟节点，h(tag, props, children)</span></div>
         <div class="point"><strong>渲染函数</strong><span>template 的底层实现，完全编程能力</span></div>
         <div class="point"><strong>选择建议</strong><span>优先 template，需要动态性时用 h()/JSX</span></div>
+        <div class="point"><strong>markRaw</strong><span>标记对象永不转为响应式，用于第三方库实例</span></div>
+        <div class="point"><strong>toRaw</strong><span>从 reactive 代理获取原始对象，修改不触发更新</span></div>
+        <div class="point"><strong>isReactive</strong><span>检测是否为 reactive 代理对象</span></div>
+        <div class="point"><strong>isRef</strong><span>检测是否为 ref 对象</span></div>
       </div>
     </div>
   </div>
@@ -254,5 +356,9 @@ button.warn { background: #ff9800; }
 button.warn:hover { background: #e68900; }
 .render-demo { margin-top: 12px; }
 .compare-col .code-block { margin-top: 8px; }
+.check-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 12px 0; }
+.check-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: white; border-radius: 6px; border: 1px solid #e9ecef; font-size: 13px; }
+.tag-yes { color: #42b883; font-weight: bold; font-size: 13px; }
+.tag-no { color: #f44336; font-weight: bold; font-size: 13px; }
 .compare-col p { font-size: 13px; margin: 4px 0; }
 </style>
