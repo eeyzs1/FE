@@ -10,11 +10,11 @@ defineEmits<{
   remove: [id: number]
 }>()
 
-const priorityMap: Record<Todo['priority'], { emoji: string; label: string }> = {
+const priorityMap = {
   low: { emoji: '🟢', label: '低' },
   medium: { emoji: '🟡', label: '中' },
   high: { emoji: '🔴', label: '高' },
-}
+} satisfies Record<Todo['priority'], { emoji: string; label: string }>
 </script>
 
 <template>

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import DemoBox from '../components/DemoBox.vue'
 
 // ==================== 第4课：条件渲染与列表渲染 ====================
 //
@@ -11,6 +12,17 @@ import { ref, computed } from 'vue'
 // v-for="(item, index) in list" :key="item.id"
 // — 必须提供唯一的 key
 // — 可以遍历数组、对象、数字范围
+//
+// ⚠️ 常见错误：
+// - v-for 没有 :key：导致渲染异常和性能问题
+// - 用 index 作 key：列表增删时导致状态错乱
+// - v-for 和 v-if 同时用在同一元素：v-for 优先级更高
+// - 在 v-for 中直接修改 item 而非替换数组
+//
+// 💡 最佳实践：
+// - key 使用唯一且稳定的标识（如 id），不要用 index
+// - v-for 和 v-if 同时需要时，用 <template v-for> + 内部 v-if
+// - 过滤列表用 computed，不要在模板中 filter
 
 // --- 条件渲染示例 ---
 const score = ref(75)
@@ -73,6 +85,29 @@ const groups = ref([
 function removeStudent(id: number) {
   students.value = students.value.filter(s => s.id !== id)
 }
+
+const codeVForObj = `// v-for 遍历对象 — (value, key, index)
+<div v-for="(value, key, index) in userInfo" :key="key">
+  {{ index }}: {{ key }} = {{ value }}
+</div>
+
+// 三个参数的顺序：value → key → index
+// 也可以只用 (value, key)`
+
+const codeVForRange = `// v-for 遍历数字范围 — 从 1 开始
+<span v-for="n in 5" :key="n">{{ n }}</span>
+// 渲染：1 2 3 4 5
+
+// 注意：n 从 1 开始，不是 0`
+
+const codeTemplateVFor = `// <template v-for> 不会产生额外 DOM 节点
+<template v-for="group in groups" :key="group.title">
+  <h4>{{ group.title }}</h4>
+  <span v-for="m in group.members" :key="m">{{ m }}</span>
+</template>
+
+// 对比：用 <div v-for> 会多一层 div 包裹
+// <template> 是"透明"的，只渲染内部内容`
 </script>
 
 <template>
@@ -95,13 +130,22 @@ function removeStudent(id: number) {
     </div>
 
     <div class="section">
-      <h2>🔹 v-show — 显示/隐藏</h2>
+      <h2>🔹 v-if vs v-show — 实时对比</h2>
       <div class="card">
-        <button @click="showSecret = !showSecret">
-          {{ showSecret ? '🙈 隐藏秘密' : '🙉 显示秘密' }}
-        </button>
-        <p v-show="showSecret" class="secret">🎉 你发现了隐藏内容！v-show 只切换 CSS display</p>
-        <p class="tip">v-show 保留 DOM，只切换 display:none，切换开销更小</p>
+        <label class="toggle"><input type="checkbox" v-model="showSecret" /> 切换显示</label>
+        <div class="compare-grid">
+          <div class="compare-col">
+            <h4>v-if（销毁/创建 DOM）</h4>
+            <p v-if="showSecret" class="secret">🎉 v-if 内容</p>
+            <p v-else class="placeholder">（DOM 不存在）</p>
+          </div>
+          <div class="compare-col">
+            <h4>v-show（CSS display 切换）</h4>
+            <p v-show="showSecret" class="secret">🎉 v-show 内容</p>
+            <p class="tip">打开 DevTools 可见：v-show 元素始终在 DOM 中，只是 display:none</p>
+          </div>
+        </div>
+        <p class="tip">频繁切换用 v-show（只切换 CSS），条件很少变用 v-if（销毁/创建 DOM）</p>
       </div>
     </div>
 
@@ -142,15 +186,15 @@ function removeStudent(id: number) {
             <span class="val">{{ value }}</span>
           </div>
         </div>
-        <div class="code-block">
-          <pre>// v-for 遍历对象 — (value, key, index)
-&lt;div v-for="(value, key, index) in userInfo" :key="key"&gt;
-  {{ index }}: {{ key }} = {{ value }}
-&lt;/div&gt;
-
-// 三个参数的顺序：value → key → index
-// 也可以只用 (value, key)</pre>
-        </div>
+        <DemoBox title="v-for 遍历对象 — (value, key, index)" :code="codeVForObj">
+          <div class="obj-list">
+            <div v-for="(value, key, index) in userInfo" :key="key" class="obj-item">
+              <span class="idx">{{ index }}</span>
+              <span class="key">{{ key }}</span>
+              <span class="val">{{ value }}</span>
+            </div>
+          </div>
+        </DemoBox>
       </div>
 
       <div class="card">
@@ -159,13 +203,12 @@ function removeStudent(id: number) {
         <div class="range-dots">
           <span v-for="n in rangeCount" :key="n" class="dot">{{ n }}</span>
         </div>
-        <div class="code-block">
-          <pre>// v-for 遍历数字范围 — 从 1 开始
-&lt;span v-for="n in 5" :key="n"&gt;{{ n }}&lt;/span&gt;
-// 渲染：1 2 3 4 5
-
-// 注意：n 从 1 开始，不是 0</pre>
-        </div>
+        <DemoBox title="v-for 遍历数字范围 — 从 1 开始" :code="codeVForRange">
+          <label>范围：<input type="number" v-model.number="rangeCount" min="1" max="20" /></label>
+          <div class="range-dots">
+            <span v-for="n in rangeCount" :key="n" class="dot">{{ n }}</span>
+          </div>
+        </DemoBox>
       </div>
 
       <div class="card">
@@ -176,16 +219,14 @@ function removeStudent(id: number) {
             <span v-for="member in group.members" :key="member" class="tag">{{ member }}</span>
           </div>
         </div>
-        <div class="code-block">
-          <pre>// &lt;template v-for&gt; 不会产生额外 DOM 节点
-&lt;template v-for="group in groups" :key="group.title"&gt;
-  &lt;h4&gt;{{ group.title }}&lt;/h4&gt;
-  &lt;span v-for="m in group.members" :key="m"&gt;{{ m }}&lt;/span&gt;
-&lt;/template&gt;
-
-// 对比：用 &lt;div v-for&gt; 会多一层 div 包裹
-// &lt;template&gt; 是"透明"的，只渲染内部内容</pre>
-        </div>
+        <DemoBox title="template v-for — 无额外 DOM 节点" :code="codeTemplateVFor">
+          <div v-for="group in groups" :key="group.title" class="group-block">
+            <h4>{{ group.title }}</h4>
+            <div class="group-members">
+              <span v-for="member in group.members" :key="member" class="tag">{{ member }}</span>
+            </div>
+          </div>
+        </DemoBox>
         <p class="tip">template v-for 适合需要渲染多个同级元素但不想加包裹 div 的场景</p>
       </div>
     </div>
@@ -215,6 +256,12 @@ function removeStudent(id: number) {
 </template>
 
 <style scoped>
+.compare-grid { display: flex; gap: 16px; margin-top: 8px; }
+.compare-col { flex: 1; padding: 14px; border-radius: 8px; border: 1px solid #e9ecef; background: white; }
+.compare-col h4 { margin: 0 0 8px; font-size: 14px; color: #42b883; }
+.placeholder { color: #bbb; font-style: italic; }
+.toggle { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; font-weight: 500; }
+.toggle input { width: auto; }
 button.active { background: #2d7a5a; }
 .grade { font-weight: bold; font-size: 18px; }
 .grade.a { color: #4caf50; }

@@ -4,11 +4,23 @@ import CustomInput from '../components/CustomInput.vue'
 import CustomVModel from '../components/CustomVModel.vue'
 import AttrChild from '../components/AttrChild.vue'
 import DefineModelDemo from '../components/DefineModelDemo.vue'
+import DemoBox from '../components/DemoBox.vue'
 
 // ==================== 第11课：自定义指令 + 透传 Attributes + 组件 v-model ====================
 
 // --- 自定义指令 ---
 // 局部自定义指令：在 <script setup> 中以 v 开头的变量自动识别为指令
+//
+// ⚠️ 常见错误：
+// - 在指令中用 (el as any).xxx 存储数据 → 应使用 WeakMap
+// - 指令 binding 参数用 any → 应使用 DirectiveBinding<T> 泛型
+// - 忘记在 unmounted 中清理副作用（定时器、事件监听）
+//
+// 💡 最佳实践：
+// - 用 WeakMap 存储指令关联数据，避免内存泄漏和类型不安全
+// - 用 DirectiveBinding<T> 泛型替代 any，获得类型推导
+// - mounted 和 updated 逻辑相同时，用函数简写
+// - 指令只用于 DOM 操作，业务逻辑放组件中
 const vFocus = {
   mounted(el: HTMLInputElement) {
     el.focus()
@@ -35,6 +47,8 @@ const vPermission = {
   },
 }
 
+const debounceCleanupMap = new WeakMap<HTMLElement, () => void>()
+
 const vDebounce = {
   mounted(el: HTMLElement, binding: DirectiveBinding<(value: string) => void>) {
     let timer: ReturnType<typeof setTimeout> | null = null
@@ -46,13 +60,15 @@ const vDebounce = {
       }, 500)
     }
     el.addEventListener('input', listener)
-    ;(el as any)._debounceCleanup = () => {
+    const cleanup = () => {
       if (timer) clearTimeout(timer)
       el.removeEventListener('input', listener)
     }
+    debounceCleanupMap.set(el, cleanup)
   },
   unmounted(el: HTMLElement) {
-    ;(el as any)._debounceCleanup?.()
+    debounceCleanupMap.get(el)?.()
+    debounceCleanupMap.delete(el)
   },
 }
 
@@ -97,6 +113,26 @@ const highlightColor = ref('#42b883')
 function onDebouncedInput(val: string) {
   debouncedValue.value = val
 }
+
+const codeDirectiveHooks = `// 自定义指令的完整钩子函数
+const myDirective = {
+  created(el, binding, vnode) { },    // 绑定元素的 attribute 前
+  beforeMount(el, binding) { },       // 元素插入 DOM 前
+  mounted(el, binding) { },           // 父组件挂载后
+  beforeUpdate(el, binding) { },      // 更新前
+  updated(el, binding) { },           // 更新后
+  beforeUnmount(el, binding) { },     // 卸载前
+  unmounted(el, binding) { },         // 卸载后
+}
+
+// 简写：当 mounted 和 updated 行为相同时
+const vFocus = (el: HTMLElement) => { el.focus() }
+
+// binding 对象包含：
+// binding.value     — 指令的绑定值 v-xxx="value"
+// binding.oldValue  — 之前的值
+// binding.arg       — 参数 v-xxx:arg
+// binding.modifiers — 修饰符 v-xxx.mod`
 
 // --- 透传 Attributes ---
 const extraClass = ref('highlight')
@@ -156,6 +192,7 @@ const dmFormatted = ref('hello world')
         <input v-debounce="onDebouncedInput" placeholder="输入后 500ms 才触发" />
         <p>防抖后的值：<strong>{{ debouncedValue || '（空）' }}</strong></p>
         <p class="tip">v-debounce 在 mounted 中添加 input 事件监听，用 setTimeout 实现防抖</p>
+        <p class="tip">💡 使用 WeakMap 存储清理函数，而非 (el as any).xxx，避免类型不安全和内存泄漏</p>
       </div>
     </div>
 
@@ -163,27 +200,12 @@ const dmFormatted = ref('hello world')
       <h2>🔹 指令钩子函数（Directive Hooks）</h2>
       <div class="card">
         <p>自定义指令本质是包含生命周期钩子的对象：</p>
-        <div class="code-block">
-          <pre>// 自定义指令的完整钩子函数
-const myDirective = {
-  created(el, binding, vnode) { },    // 绑定元素的 attribute 前
-  beforeMount(el, binding) { },       // 元素插入 DOM 前
-  mounted(el, binding) { },           // 父组件挂载后
-  beforeUpdate(el, binding) { },      // 更新前
-  updated(el, binding) { },           // 更新后
-  beforeUnmount(el, binding) { },     // 卸载前
-  unmounted(el, binding) { },         // 卸载后
-}
-
-// 简写：当 mounted 和 updated 行为相同时
-const vFocus = (el: HTMLElement) => { el.focus() }
-
-// binding 对象包含：
-// binding.value     — 指令的绑定值 v-xxx="value"
-// binding.oldValue  — 之前的值
-// binding.arg       — 参数 v-xxx:arg
-// binding.modifiers — 修饰符 v-xxx.mod</pre>
-        </div>
+        <DemoBox title="自定义指令钩子函数 + binding 对象" :code="codeDirectiveHooks">
+          <p>选择颜色：<input type="color" v-model="highlightColor" /></p>
+          <p v-highlight="highlightColor">v-highlight — 默认设置文字颜色</p>
+          <p v-highlight:bg="highlightColor" style="padding:4px 8px;border-radius:4px;">v-highlight:bg — 设置背景色 (arg="bg")</p>
+          <p v-highlight:border.bold="highlightColor" style="padding:4px 8px;border-radius:4px;">v-highlight:border.bold — 边框+加粗 (arg="border", modifiers.bold)</p>
+        </DemoBox>
         <p class="tip">实际开发中最常用的是 mounted 和 updated，如果两者逻辑相同可以用函数简写</p>
       </div>
     </div>

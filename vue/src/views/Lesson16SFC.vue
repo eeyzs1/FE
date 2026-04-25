@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref, onUpdated } from 'vue'
+import { ref, onUpdated, computed, h } from 'vue'
+import DemoBox from '../components/DemoBox.vue'
 import SlottedChild from '../components/SlottedChild.vue'
 import DeepChild from '../components/DeepChild.vue'
 
@@ -13,6 +14,26 @@ import DeepChild from '../components/DeepChild.vue'
 // 1. v-bind() in CSS — 在 style 中绑定响应式数据
 const themeColor = ref('#42b883')
 const borderRadius = ref(12)
+const sfcCount = ref(0)
+
+const codeSfcStructure = `// SFC 结构
+MyComponent.vue
+┌─────────────────────────────────────┐
+│ <script setup lang="ts">           │ ← 逻辑
+│ import { ref } from 'vue'           │
+│ const count = ref(0)                │
+│ \x3c/script>                        │
+│                                     │
+│ <template>                          │ ← 结构
+│   <button @click="count++">        │
+│     {{ count }}                     │
+│   </button>                         │
+│ </template>                         │
+│                                     │
+│ <style scoped>                      │ ← 样式
+│ button { background: #42b883; }     │
+│ </style>                            │
+└─────────────────────────────────────┘`
 
 // 2. CSS Modules — 自动生成唯一类名
 // 使用 <style module>，通过 $style.xxx 访问
@@ -100,6 +121,15 @@ function toggleMemoItem(id: number) {
   const item = memoItems.value.find(i => i.id === id)
   if (item) item.selected = !item.selected
 }
+
+// --- 渲染函数演示 ---
+const renderFnCount = ref(0)
+const renderFnDemo = computed(() => {
+  return h('div', { style: { padding: '12px', background: '#e8f5e9', borderRadius: '8px', border: '2px solid #42b883' } }, [
+    h('p', { style: { fontWeight: 'bold', margin: '0 0 8px' } }, `Count: ${renderFnCount.value}`),
+    h('button', { onClick: () => renderFnCount.value++, style: { cursor: 'pointer' } }, '+1'),
+  ])
+})
 </script>
 
 <template>
@@ -110,26 +140,23 @@ function toggleMemoItem(id: number) {
     <div class="section">
       <h2>🔹 SFC 单文件组件结构</h2>
       <div class="card">
-        <div class="code-block">
-          <pre v-pre>// SFC 结构
-MyComponent.vue
-┌─────────────────────────────────────┐
-│ &lt;script setup lang="ts"&gt;           │ ← 逻辑
-│ import { ref } from 'vue'           │
-│ const count = ref(0)                │
-│ &lt;/script&gt;                           │
-│                                     │
-│ &lt;template&gt;                          │ ← 结构
-│   &lt;button @click="count++"&gt;        │
-│     {{ count }}                     │
-│   &lt;/button&gt;                         │
-│ &lt;/template&gt;                         │
-│                                     │
-│ &lt;style scoped&gt;                      │ ← 样式
-│ button { background: #42b883; }     │
-│ &lt;/style&gt;                            │
-└─────────────────────────────────────┘</pre>
-        </div>
+        <DemoBox title="SFC 单文件组件结构 — 实时演示" :code="codeSfcStructure">
+          <p>SFC 中的三个部分协同工作：</p>
+          <div class="sfc-demo">
+            <div class="sfc-part">
+              <span class="sfc-label" style="background:#42b883">script setup</span>
+              <span>count = <strong>{{ sfcCount }}</strong></span>
+            </div>
+            <div class="sfc-part">
+              <span class="sfc-label" style="background:#3498db">template</span>
+              <button @click="sfcCount++" class="sfc-btn">点击 count++</button>
+            </div>
+            <div class="sfc-part">
+              <span class="sfc-label" style="background:#e67e22">style scoped</span>
+              <span>按钮颜色由 scoped CSS 控制</span>
+            </div>
+          </div>
+        </DemoBox>
         <p class="tip">SFC 将逻辑、结构、样式封装在一个文件中，是 Vue 的标志性功能</p>
       </div>
     </div>
@@ -404,29 +431,20 @@ MyComponent.vue
       <h2>🔹 渲染函数 & JSX</h2>
       <div class="card">
         <p>除了 template，Vue 还支持用 JavaScript 写渲染函数：</p>
-        <div class="code-block">
-          <pre>// 渲染函数（h = createElement）
-import { h, ref } from 'vue'
-export default {
-  setup() {
-    const count = ref(0)
-    return () =&gt; h('div', [
-      h('p', `Count: ${count.value}`),
-      h('button', { onClick: () =&gt; count.value++ }, '+1')
-    ])
-  }
-}
-
-// JSX（需要 @vitejs/plugin-vue-jsx）
-const App = defineComponent(() =&gt; {
-  const count = ref(0)
-  return () =&gt; (
-    &lt;div&gt;
-      &lt;p&gt;Count: {count.value}&lt;/p&gt;
-      &lt;button onClick={() =&gt; count.value++}&gt;+1&lt;/button&gt;
-    &lt;/div&gt;
-  )
-})</pre>
+        <div class="compare-grid">
+          <div class="compare-col">
+            <h4>Template 方式</h4>
+            <div class="template-demo">
+              <p class="demo-label">Count: {{ renderFnCount }}</p>
+              <button @click="renderFnCount++">+1</button>
+            </div>
+            <p class="tip">声明式写法，直观易读</p>
+          </div>
+          <div class="compare-col">
+            <h4>h() 渲染函数方式</h4>
+            <component :is="renderFnDemo" />
+            <p class="tip">编程式写法，完全 JavaScript 控制</p>
+          </div>
         </div>
         <p class="tip">99% 场景用 template 就够了，渲染函数/JSX 适合动态性极强的场景</p>
         <p class="tip">如：根据配置动态生成表单、高度灵活的列表渲染等</p>
@@ -454,6 +472,16 @@ const App = defineComponent(() =&gt; {
 </template>
 
 <style scoped>
+.sfc-demo { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+.sfc-part { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: #f9f9f9; border-radius: 6px; }
+.sfc-label { color: white; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; }
+.sfc-btn { background: #42b883; color: white; border: none; padding: 4px 12px; border-radius: 6px; cursor: pointer; }
+.sfc-btn:hover { background: #369970; }
+.compare-grid { display: flex; gap: 16px; margin-top: 8px; }
+.compare-col { flex: 1; padding: 14px; border-radius: 8px; border: 1px solid #e9ecef; background: white; }
+.compare-col h4 { margin: 0 0 8px; font-size: 14px; color: #42b883; }
+.template-demo { padding: 12px; background: #f0faf5; border-radius: 8px; border: 2px solid #42b88333; }
+.demo-label { font-weight: bold; margin: 0 0 8px; }
 .style-controls { display: flex; gap: 16px; margin-bottom: 12px; flex-wrap: wrap; align-items: center; }
 .style-controls label { display: flex; align-items: center; gap: 6px; font-size: 14px; }
 .css-demo {

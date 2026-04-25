@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref, reactive, toRef, toRefs, shallowRef, shallowReactive, triggerRef } from 'vue'
+import { ref, reactive, computed, toRef, toRefs, shallowRef, shallowReactive, triggerRef } from 'vue'
+import DemoBox from '../components/DemoBox.vue'
 
 // ==================== 第1课：响应式基础 ====================
 //
@@ -10,6 +11,16 @@ import { ref, reactive, toRef, toRefs, shallowRef, shallowReactive, triggerRef }
 // 关键区别：
 // - ref 需要 .value 访问值（在 JS 中），在模板中自动解包
 // - reactive 直接访问属性，但不能替换整个对象
+//
+// ⚠️ 常见错误：
+// - 忘记 .value：count++ 应该是 count.value++
+// - 解构 reactive：const { name } = user 会丢失响应性
+// - 替换 reactive：user = newObj 会丢失响应性
+//
+// 💡 最佳实践：
+// - 优先使用 ref，因为 ref 解构安全、可替换整个值
+// - 仅在需要多个相关属性时使用 reactive
+// - composable 中始终返回 ref 而非 reactive
 
 // --- ref 示例 ---
 const count = ref(0)
@@ -62,8 +73,9 @@ function growUp() {
 // --- toRef / toRefs 演示 ---
 // reactive 解构会丢失响应性，用 toRef/toRefs 保持
 const { name: userName, age: userAge } = toRefs(user)
-// toRef 也可以单独转换一个属性
+const { name: destructuredName } = user
 const nameRef = toRef(user, 'name')
+const nameRefDisplay = computed(() => `toRef(user, 'name') = ${nameRef.value}`)
 
 // --- shallowRef 演示 ---
 // shallowRef 只追踪 .value 的替换，不追踪内部属性变化
@@ -75,6 +87,19 @@ function pushShallow() {
 function replaceShallow() {
   shallowList.value = [...shallowList.value, 'E']
 }
+
+const codeShallowRef = `// shallowRef：只有 .value 替换才触发更新
+const list = shallowRef(['A', 'B', 'C'])
+
+// ❌ 修改内部属性不会触发更新
+list.value.push('D')  // 视图不更新！
+
+// ✅ 方式1：替换整个 .value
+list.value = [...list.value, 'D']
+
+// ✅ 方式2：修改后手动触发
+list.value.push('D')
+triggerRef(list)  // 强制更新`
 
 // --- shallowReactive 演示 ---
 // shallowReactive 只有根级属性是响应式的
@@ -135,27 +160,28 @@ function mutateNested() {
     </div>
 
     <div class="section">
-      <h2>� toRef / toRefs — 解构保持响应性</h2>
+      <h2>🔹 toRef / toRefs — 解构保持响应性</h2>
       <div class="card">
-        <p>reactive 对象直接解构会丢失响应性，必须用 toRefs：</p>
-        <p>userName（toRefs）：{{ userName }} | userAge（toRefs）：{{ userAge }}</p>
-        <div class="code-block">
-          <pre>// ❌ 直接解构 — 丢失响应性
-const { name, age } = user
-name = '李四'  // 不会触发更新！
-
-// ✅ toRefs — 每个属性变成 ref，保持响应性
-const { name: userName, age: userAge } = toRefs(user)
-userName.value = '李四'  // 触发更新！
-
-// ✅ toRef — 单独转换一个属性
-const nameRef = toRef(user, 'name')
-nameRef.value = '王五'  // 触发更新！
-
-// toRefs 常用于 composable 返回值解构
-// const { x, y } = toRefs(useMouse())</pre>
+        <h3>❌ 直接解构 vs ✅ toRefs — 实时对比</h3>
+        <p>修改 user.name 后观察两种解构方式的差异：</p>
+        <div class="compare-grid">
+          <div class="compare-col bad">
+            <h4>❌ 直接解构（丢失响应性）</h4>
+            <p>解构时的值：<strong>{{ destructuredName }}</strong></p>
+            <p class="tip">直接解构拿到的是普通变量快照，后续修改 user.name 不会更新</p>
+          </div>
+          <div class="compare-col good">
+            <h4>✅ toRefs（保持响应性）</h4>
+            <p>userName：<strong>{{ userName }}</strong></p>
+            <p>userAge：<strong>{{ userAge }}</strong></p>
+            <p class="tip">toRefs 将每个属性转为 ref，修改 user.name 会同步更新</p>
+          </div>
         </div>
-        <p class="tip">toRef/toRefs 创建的 ref 与原 reactive 属性保持同步，修改任一方另一方也变</p>
+        <div class="demo-row" style="margin-top:12px;">
+          <label>修改 user.name：<input v-model="user.name" /></label>
+          <button @click="user.name = '张三'; user.age = 25">🔄 重置</button>
+        </div>
+        <p>{{ nameRefDisplay }}</p>
       </div>
     </div>
 
@@ -168,20 +194,14 @@ nameRef.value = '王五'  // 触发更新！
           <button @click="pushShallow">push + triggerRef</button>
           <button @click="replaceShallow">替换整个数组</button>
         </div>
-        <div class="code-block">
-          <pre>// shallowRef：只有 .value 替换才触发更新
-const list = shallowRef(['A', 'B', 'C'])
-
-// ❌ 修改内部属性不会触发更新
-list.value.push('D')  // 视图不更新！
-
-// ✅ 方式1：替换整个 .value
-list.value = [...list.value, 'D']
-
-// ✅ 方式2：修改后手动触发
-list.value.push('D')
-triggerRef(list)  // 强制更新</pre>
-        </div>
+        <DemoBox title="shallowRef 三种更新方式对比" :code="codeShallowRef">
+          <p>当前数组：<strong>{{ shallowList.join(', ') }}</strong></p>
+          <div class="btn-group">
+            <button @click="pushShallow" style="background:#ff9800">❌ push（不更新）</button>
+            <button @click="replaceShallow">✅ 替换整个数组</button>
+          </div>
+          <p class="tip">点击"❌ push"后数组内部变了但视图不变；点击"✅ 替换"后视图才更新</p>
+        </DemoBox>
         <p class="tip">shallowRef 适合大型数据结构（如第三方库返回的对象），避免深层响应式的性能开销</p>
       </div>
 
@@ -258,4 +278,12 @@ input:focus {
   outline: none;
   border-color: #42b883;
 }
+.compare-grid { display: flex; gap: 16px; margin-top: 8px; }
+.compare-col { flex: 1; padding: 14px; border-radius: 8px; }
+.compare-col.bad { background: #fff5f5; border: 2px solid #f4433633; }
+.compare-col.good { background: #f0faf5; border: 2px solid #42b88333; }
+.compare-col h4 { margin: 0 0 8px; font-size: 14px; }
+.demo-row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.demo-row label { display: flex; align-items: center; gap: 6px; font-size: 14px; }
+.demo-row input { width: auto; }
 </style>

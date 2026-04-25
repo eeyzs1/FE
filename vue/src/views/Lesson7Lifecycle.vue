@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, onUpdated, toValue, type Ref } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, onUpdated, toValue, type Ref } from 'vue'
 import { useCounter } from '../composables/useCounter'
 import { useMouse } from '../composables/useMouse'
 import { useFetch } from '../composables/useFetch'
 import { useOnline } from '../composables/useOnline'
+import DemoBox from '../components/DemoBox.vue'
 
 // ==================== 第7课：生命周期与 Composables ====================
 //
@@ -23,6 +24,16 @@ import { useOnline } from '../composables/useOnline'
 // - 接受 ref/getter 参数（用 toValue 解包）
 // - 返回 ref 而非 reactive
 // - 在 composable 内部处理副作用清理
+//
+// ⚠️ 常见错误：
+// - 在 onUpdated 中修改响应式数据导致无限循环
+// - 忘记在 onUnmounted 中清理定时器/事件监听
+// - composable 返回 reactive 对象（解构丢失响应性）
+//
+// 💡 最佳实践：
+// - onMounted 最常用：发请求、操作 DOM、添加事件监听
+// - composable 返回 readonly(ref) 防止外部直接修改状态
+// - 使用 SSR 时注意 window/navigator 的存在性检查
 
 // --- 生命周期演示 ---
 const mountTime = ref('')
@@ -82,6 +93,33 @@ const doubledFromGetter = useDoubled(() => baseNum.value + 10)
 // --- useFetch Composable ---
 const fetchUrl = ref('https://jsonplaceholder.typicode.com/todos/1')
 const { data: fetchData, error: fetchError, isLoading: fetchLoading, refresh: fetchRefresh } = useFetch<any>(fetchUrl)
+
+// --- 副作用清理演示 ---
+const showTimerDemo = ref(false)
+const leakyCount = ref(0)
+const cleanCount = ref(0)
+let leakyTimer: ReturnType<typeof setInterval> | null = null
+let cleanTimer: ReturnType<typeof setInterval> | null = null
+
+watch(showTimerDemo, (show) => {
+  if (show) {
+    leakyCount.value = 0
+    cleanCount.value = 0
+    if (leakyTimer) clearInterval(leakyTimer)
+    leakyTimer = setInterval(() => {
+      leakyCount.value++
+      console.log('⚠️ 泄漏的定时器仍在运行:', leakyCount.value)
+    }, 1000)
+    cleanTimer = setInterval(() => {
+      cleanCount.value++
+    }, 1000)
+  } else {
+    if (cleanTimer) {
+      clearInterval(cleanTimer)
+      cleanTimer = null
+    }
+  }
+})
 </script>
 
 <template>
@@ -212,24 +250,25 @@ function useCounter() {
       </div>
 
       <div class="card">
-        <h3>3. 副作用清理（watch onCleanup / onScopeDispose）</h3>
-        <div class="code-block">
-          <pre>// 方式1：watch 的 onCleanup
-watch(source, (newVal, oldVal, onCleanup) =&gt; {
-  const controller = new AbortController()
-  onCleanup(() =&gt; controller.abort())  // 侦听器重新执行前清理
-  fetch(url, { signal: controller.signal })
-})
-
-// 方式2：onScopeDispose（组件/composable 作用域销毁时）
-import { onScopeDispose } from 'vue'
-
-const scope = effectScope(() =&gt; {
-  const timer = setInterval(tick, 1000)
-  onScopeDispose(() =&gt; clearInterval(timer))
-})</pre>
+        <h3>3. 副作用清理 — 定时器泄漏 vs 正确清理</h3>
+        <p>切换组件模拟卸载，观察定时器是否被正确清理：</p>
+        <label class="toggle"><input type="checkbox" v-model="showTimerDemo" /> 显示定时器组件</label>
+        <div v-if="showTimerDemo" class="timer-demo">
+          <div class="compare-grid">
+            <div class="compare-col bad">
+              <h4>❌ 不清理定时器</h4>
+              <p>计数：<strong>{{ leakyCount }}</strong></p>
+              <p class="tip">隐藏组件后定时器仍在运行！打开控制台可见日志</p>
+            </div>
+            <div class="compare-col good">
+              <h4>✅ onUnmounted 清理</h4>
+              <p>计数：<strong>{{ cleanCount }}</strong></p>
+              <p class="tip">隐藏组件后定时器被清除，不再运行</p>
+            </div>
+          </div>
         </div>
-        <p class="tip">在 composable 中创建的副作用必须在不再需要时清理</p>
+        <p v-else class="tip">勾选上方复选框显示定时器组件，然后取消勾选观察差异</p>
+        <p class="tip">onUnmounted 是清理定时器、事件监听、WebSocket 等副作用的关键钩子</p>
       </div>
 
       <div class="card">
@@ -329,6 +368,13 @@ const { data, error, isLoading } = useFetch('/api/users').json()</pre>
 </template>
 
 <style scoped>
+.compare-grid { display: flex; gap: 16px; margin-top: 8px; }
+.compare-col { flex: 1; padding: 14px; border-radius: 8px; }
+.compare-col.bad { background: #fff5f5; border: 2px solid #f4433633; }
+.compare-col.good { background: #f0faf5; border: 2px solid #42b88333; }
+.compare-col h4 { margin: 0 0 8px; font-size: 14px; }
+.toggle { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; font-weight: 500; }
+.toggle input { width: auto; }
 .mouse-tracker {
   width: 100%; height: 150px; background: #e8f5e9;
   border-radius: 12px; position: relative; overflow: hidden;

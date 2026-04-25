@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref, reactive, computed, h, markRaw, toRaw, isReactive, isRef, isProxy } from 'vue'
+import { ref, reactive, computed, h, markRaw, toRaw, isReactive, isRef, isProxy, watch } from 'vue'
+import DemoBox from '../components/DemoBox.vue'
 
 // ==================== 第14课：深入响应式系统 + 渲染函数 ====================
 
@@ -19,23 +20,49 @@ function logTrack(msg: string) {
 }
 
 // 演示：ref 的 .value 是如何工作的
-function demonstrateRef() {
-  trackLog.value = []
-  logTrack('1. ref(0) 创建响应式包装对象')
-  logTrack('2. .value 的 getter 执行 track()（追踪依赖）')
-  logTrack('3. .value 的 setter 执行 trigger()（触发更新）')
-  logTrack('4. 模板读取 count → 触发 getter → 收集当前组件为依赖')
-  logTrack('5. 修改 count.value → 触发 setter → 通知组件重新渲染')
-}
+const refStep = ref(0)
+let refStepTimer: ReturnType<typeof setTimeout> | null = null
 
-function demonstrateReactive() {
+watch(primitiveValue, () => {
   trackLog.value = []
-  logTrack('1. reactive({}) 创建 Proxy 代理对象')
-  logTrack('2. 访问 proxy.a → Proxy get 拦截 → track()')
-  logTrack('3. 修改 proxy.a = 2 → Proxy set 拦截 → trigger()')
-  logTrack('4. 深层对象 proxy.b.c 也是响应式的（递归 Proxy）')
-  logTrack('5. reactive 的局限：不能替换整个对象、解构丢失响应性')
-}
+  logTrack('📖 模板读取 primitiveValue → getter → track() 追踪依赖')
+  refStep.value = 1
+  if (refStepTimer) clearTimeout(refStepTimer)
+  refStepTimer = setTimeout(() => {
+    refStep.value = 2
+    logTrack('📖 依赖收集完成：当前组件被记录为依赖')
+  }, 400)
+  refStepTimer = setTimeout(() => {
+    refStep.value = 3
+    logTrack('📖 primitiveValue 被修改 → setter → trigger() 通知更新')
+  }, 800)
+  refStepTimer = setTimeout(() => {
+    refStep.value = 4
+    logTrack('📖 组件重新渲染 → 页面显示新值')
+  }, 1200)
+})
+
+const reactiveStep = ref(0)
+let reactiveStepTimer: ReturnType<typeof setTimeout> | null = null
+
+watch(() => ({ ...objectValue }), () => {
+  trackLog.value = []
+  logTrack('📖 访问 objectValue.a → Proxy get 拦截 → track()')
+  reactiveStep.value = 1
+  if (reactiveStepTimer) clearTimeout(reactiveStepTimer)
+  reactiveStepTimer = setTimeout(() => {
+    reactiveStep.value = 2
+    logTrack('📖 依赖收集：记录当前组件为 objectValue.a 的依赖')
+  }, 400)
+  reactiveStepTimer = setTimeout(() => {
+    reactiveStep.value = 3
+    logTrack('📖 修改 objectValue.a → Proxy set 拦截')
+  }, 800)
+  reactiveStepTimer = setTimeout(() => {
+    reactiveStep.value = 4
+    logTrack('📖 trigger() → 通知所有依赖 → 组件重新渲染')
+  }, 1200)
+}, { deep: true })
 
 // --- 响应式陷阱 ---
 const state = reactive({ count: 0, nested: { value: 'hello' } })
@@ -86,6 +113,25 @@ function triggerRender() {
   showRenderDemo.value = true
 }
 
+const codeRenderVNode = `// h() 创建虚拟节点
+import { h } from 'vue'
+
+// h(标签, 属性对象, 子内容)
+const vnode = h('div', { class: 'box' }, 'Hello')
+
+// 子内容可以是数组
+const vnode2 = h('div', { class: 'card' }, [
+  h('h2', null, '标题'),
+  h('p', null, '内容'),
+])
+
+// 在 render 函数中使用
+export default {
+  render() {
+    return h('div', null, \`Count: \${this.count}\`)
+  }
+}`
+
 // --- 响应式工具函数 ---
 const rawObj = { name: '原始对象', items: [1, 2, 3] }
 const markedObj = markRaw(rawObj)
@@ -121,22 +167,35 @@ const isSameObject = rawFromReactive === checkReactive
         <p>当前值：{{ primitiveValue }}</p>
         <div class="btn-group">
           <button @click="primitiveValue++">➕ 加一</button>
-          <button @click="demonstrateRef">📖 查看原理</button>
+          <button @click="primitiveValue--">➖ 减一</button>
+          <button @click="primitiveValue = 0">� 重置</button>
         </div>
-        <div class="code-block">
-          <pre>// ref 的内部原理（简化版）
-const myRef = {
-  _value: 0,
-  get value() {
-    track()    // 追踪：谁在读取我？
-    return this._value
-  },
-  set value(newValue) {
-    this._value = newValue
-    trigger()  // 触发：通知依赖更新
-  }
-}</pre>
+        <div class="reactivity-visual">
+          <div class="rv-step" :class="{ active: refStep >= 1 }">
+            <span class="rv-num">1</span>
+            <span class="rv-label">读取 .value</span>
+            <span class="rv-action">→ track() 追踪依赖</span>
+          </div>
+          <div class="rv-arrow">→</div>
+          <div class="rv-step" :class="{ active: refStep >= 2 }">
+            <span class="rv-num">2</span>
+            <span class="rv-label">收集依赖</span>
+            <span class="rv-action">→ 记录"谁在用我"</span>
+          </div>
+          <div class="rv-arrow">→</div>
+          <div class="rv-step" :class="{ active: refStep >= 3 }">
+            <span class="rv-num">3</span>
+            <span class="rv-label">修改 .value</span>
+            <span class="rv-action">→ trigger() 通知更新</span>
+          </div>
+          <div class="rv-arrow">→</div>
+          <div class="rv-step" :class="{ active: refStep >= 4 }">
+            <span class="rv-num">4</span>
+            <span class="rv-label">重新渲染</span>
+            <span class="rv-action">→ 页面更新</span>
+          </div>
         </div>
+        <p class="tip">点击 ➕/➖ 按钮，观察上方流程自动高亮：读取→追踪→修改→触发→渲染</p>
         <div class="log-area">
           <p v-for="(log, i) in trackLog" :key="i" class="log-item">{{ log }}</p>
         </div>
@@ -150,22 +209,34 @@ const myRef = {
         <div class="btn-group">
           <button @click="objectValue.a++">修改 a</button>
           <button @click="objectValue.b.c++">修改 b.c</button>
-          <button @click="demonstrateReactive">📖 查看原理</button>
+          <button @click="objectValue.a = 0; objectValue.b.c = 0">🔄 重置</button>
         </div>
-        <div class="code-block">
-          <pre>// reactive 的内部原理（简化版）
-const proxy = new Proxy(target, {
-  get(target, key) {
-    track(target, key)  // 追踪属性读取
-    return target[key]
-  },
-  set(target, key, value) {
-    target[key] = value
-    trigger(target, key) // 触发属性更新
-    return true
-  }
-})</pre>
+        <div class="reactivity-visual">
+          <div class="rv-step" :class="{ active: reactiveStep >= 1 }">
+            <span class="rv-num">1</span>
+            <span class="rv-label">Proxy.get</span>
+            <span class="rv-action">→ 拦截属性读取</span>
+          </div>
+          <div class="rv-arrow">→</div>
+          <div class="rv-step" :class="{ active: reactiveStep >= 2 }">
+            <span class="rv-num">2</span>
+            <span class="rv-label">track()</span>
+            <span class="rv-action">→ 追踪该属性依赖</span>
+          </div>
+          <div class="rv-arrow">→</div>
+          <div class="rv-step" :class="{ active: reactiveStep >= 3 }">
+            <span class="rv-num">3</span>
+            <span class="rv-label">Proxy.set</span>
+            <span class="rv-action">→ 拦截属性修改</span>
+          </div>
+          <div class="rv-arrow">→</div>
+          <div class="rv-step" :class="{ active: reactiveStep >= 4 }">
+            <span class="rv-num">4</span>
+            <span class="rv-label">trigger()</span>
+            <span class="rv-action">→ 通知依赖更新</span>
+          </div>
         </div>
+        <p class="tip">修改任意属性，观察 Proxy 拦截流程自动高亮</p>
         <div class="log-area">
           <p v-for="(log, i) in trackLog" :key="i" class="log-item">{{ log }}</p>
         </div>
@@ -198,26 +269,14 @@ const proxy = new Proxy(target, {
         <div v-if="showRenderDemo" class="render-demo">
           <component :is="renderVNode" />
         </div>
-        <div class="code-block">
-          <pre>// h() 创建虚拟节点
-import { h } from 'vue'
-
-// h(标签, 属性对象, 子内容)
-const vnode = h('div', { class: 'box' }, 'Hello')
-
-// 子内容可以是数组
-const vnode2 = h('div', { class: 'card' }, [
-  h('h2', null, '标题'),
-  h('p', null, '内容'),
-])
-
-// 在 render 函数中使用
-export default {
-  render() {
-    return h('div', null, `Count: ${this.count}`)
-  }
-}</pre>
-        </div>
+        <DemoBox title="h() 渲染函数创建 VNode" :code="codeRenderVNode">
+          <button @click="triggerRender">
+            {{ showRenderDemo ? '隐藏' : '显示' }}渲染函数示例
+          </button>
+          <div v-if="showRenderDemo" class="render-demo">
+            <component :is="renderVNode" />
+          </div>
+        </DemoBox>
         <p class="tip">h() 是 createVNode() 的缩写，返回虚拟 DOM 节点</p>
         <p class="tip">模板编译后就是渲染函数，template 只是 h() 的语法糖</p>
       </div>
@@ -293,39 +352,39 @@ export default {
       <div class="card">
         <h3>markRaw — 标记对象永不转为响应式</h3>
         <p>markRaw 后的对象即使传给 reactive 也不会被代理：</p>
-        <p>isReactive(reactive(markRaw(obj))) = <span :class="checkResults.isReactive_marked ? 'tag-yes' : 'tag-no'">{{ checkResults.isReactive_marked }}</span></p>
-        <div class="code-block">
-          <pre>// markRaw：标记对象永远不会转为响应式代理
-const rawObj = { name: '原始对象' }
-const marked = markRaw(rawObj)
-
-// 即使传给 reactive 也不会被代理
-const state = reactive(marked)
-isReactive(state) // false！
-
-// 典型场景：第三方库实例、不可变数据
-// 如：const chart = markRaw(new Chart(ctx, config))</pre>
+        <div class="compare-grid">
+          <div class="compare-col bad">
+            <h4>❌ 不用 markRaw</h4>
+            <p>isReactive(reactive(obj))</p>
+            <p>= <strong>{{ isReactive(reactive({ name: '普通对象' })) }}</strong></p>
+            <p class="tip">普通对象传给 reactive 会被代理</p>
+          </div>
+          <div class="compare-col good">
+            <h4>✅ 使用 markRaw</h4>
+            <p>isReactive(reactive(markRaw(obj)))</p>
+            <p>= <strong>{{ checkResults.isReactive_marked }}</strong></p>
+            <p class="tip">markRaw 后即使传给 reactive 也不会被代理</p>
+          </div>
         </div>
-        <p class="tip">markRaw 常用于第三方库实例（如 ECharts、Mapbox GL），避免 Vue 深层代理导致的性能问题</p>
+        <p class="tip">典型场景：第三方库实例（如 ECharts、Mapbox GL），避免 Vue 深层代理导致的性能问题</p>
       </div>
 
       <div class="card">
         <h3>toRaw — 获取原始对象</h3>
         <p>toRaw 从 reactive 代理中取出原始对象（不触发响应式）：</p>
-        <p>toRaw(reactive({})) === 原对象？<span :class="!isSameObject ? 'tag-yes' : 'tag-no'">{{ !isSameObject ? '是不同对象（代理≠原始）' : '相同' }}</span></p>
-        <div class="code-block">
-          <pre>// toRaw：从 reactive 代理中获取原始对象
-const state = reactive({ count: 0 })
-const raw = toRaw(state)
-
-// raw === state 为 false（raw 是原始对象，state 是 Proxy）
-// 修改 raw 不会触发响应式更新
-raw.count++ // 不会触发视图更新！
-
-// 典型场景：
-// 1. 传递给不需要响应式的第三方库
-// 2. 性能敏感的读取操作
-// 3. 调试时查看原始数据</pre>
+        <div class="compare-grid">
+          <div class="compare-col bad">
+            <h4>reactive 对象</h4>
+            <p>isProxy(checkReactive)</p>
+            <p>= <strong>{{ isProxy(checkReactive) }}</strong></p>
+            <p class="tip">reactive 返回的是 Proxy 代理</p>
+          </div>
+          <div class="compare-col good">
+            <h4>toRaw 取出原始对象</h4>
+            <p>rawFromReactive === checkReactive</p>
+            <p>= <strong>{{ isSameObject }}</strong></p>
+            <p class="tip">toRaw 返回原始对象，修改不触发更新</p>
+          </div>
         </div>
         <p class="tip">toRaw 返回的原始对象修改不会触发视图更新，仅在需要绕过响应式时使用</p>
       </div>
@@ -352,6 +411,30 @@ raw.count++ // 不会触发视图更新！
 </template>
 
 <style scoped>
+.reactivity-visual {
+  display: flex; align-items: center; gap: 8px; margin: 16px 0;
+  padding: 16px; background: #f8f9fa; border-radius: 12px; flex-wrap: wrap;
+}
+.rv-step {
+  display: flex; align-items: center; gap: 6px;
+  padding: 8px 12px; border-radius: 8px; background: white;
+  border: 2px solid #e9ecef; transition: all 0.3s; opacity: 0.4;
+}
+.rv-step.active { opacity: 1; border-color: #42b883; background: #f0faf5; }
+.rv-num {
+  width: 24px; height: 24px; border-radius: 50%; background: #42b883;
+  color: white; display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: bold;
+}
+.rv-step.active .rv-num { background: #2d7a5a; }
+.rv-label { font-weight: bold; font-size: 13px; color: #333; }
+.rv-action { font-size: 12px; color: #888; }
+.rv-arrow { font-size: 18px; color: #42b883; font-weight: bold; }
+.compare-grid { display: flex; gap: 16px; margin-top: 8px; }
+.compare-col { flex: 1; padding: 14px; border-radius: 8px; }
+.compare-col.bad { background: #fff5f5; border: 2px solid #f4433633; }
+.compare-col.good { background: #f0faf5; border: 2px solid #42b88333; }
+.compare-col h4 { margin: 0 0 8px; font-size: 14px; }
 button.warn { background: #ff9800; }
 button.warn:hover { background: #e68900; }
 .render-demo { margin-top: 12px; }

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, reactive, computed } from 'vue'
+import DemoBox from '../components/DemoBox.vue'
 
 // ==================== 第8课：Class/Style 绑定 + 事件处理 ====================
 //

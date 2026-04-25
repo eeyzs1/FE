@@ -1,9 +1,11 @@
 <script setup lang="ts">
-import { ref, provide, inject } from 'vue'
+import { ref, provide } from 'vue'
+import { themeKey, appNameKey } from '../injectionKeys'
 import ChildCard from '../components/ChildCard.vue'
 import SlotDemo from '../components/SlotDemo.vue'
 import CustomInput from '../components/CustomInput.vue'
 import CustomVModel from '../components/CustomVModel.vue'
+import DemoBox from '../components/DemoBox.vue'
 
 // ==================== 第3课：组件通信 ====================
 //
@@ -14,6 +16,16 @@ import CustomVModel from '../components/CustomVModel.vue'
 // 4. v-model   — 双向绑定（Props + Emit 的语法糖）
 // 5. provide/inject — 跨层级通信（祖先 → 后代）
 // 6. defineExpose — 父组件调用子组件方法
+//
+// ⚠️ 常见错误：
+// - 直接修改 props：props.xxx = 'new' 会触发警告
+// - emit 事件名用 camelCase：模板中必须用 kebab-case
+// - provide 用字符串 key：无法保证类型安全，应使用 InjectionKey
+//
+// 💡 最佳实践：
+// - 遵循单向数据流：子组件通过 emit 通知父组件修改
+// - provide/inject 使用 Symbol + InjectionKey 保证类型安全
+// - 复杂表单用 v-model + defineModel，简单展示用 props
 
 // ========== Props 演示 ==========
 const parentMessage = ref('来自父组件的问候！')
@@ -22,10 +34,12 @@ const scoreFromChild = ref(0)
 
 function onChildRespond(msg: string) {
   childFeedback.value = msg
+  addLog('子组件回复: ' + msg)
 }
 
 function onScoreChange(delta: number) {
   scoreFromChild.value += delta
+  addLog('分数变化: ' + delta)
 }
 
 // Props 验证演示
@@ -33,6 +47,28 @@ const validatedTitle = ref('动态标题')
 const validatedCount = ref(10)
 const validatedVisible = ref(true)
 const validatedTags = ref(['Vue', 'TypeScript'])
+
+const codePropsValidation = `// Props 支持的类型：
+defineProps<{
+  // 基础类型
+  title: string              // 字符串
+  count: number              // 数字
+  visible: boolean           // 布尔值
+
+  // 复杂类型
+  tags: string[]             // 数组
+  user: { name: string }     // 对象字面量
+  callback: (id: number) => void  // 函数
+  status?: 'active' | 'inactive'  // 可选 + 联合类型
+}>()
+
+// 设置默认值
+withDefaults(defineProps<{
+  title: string
+  count?: number            // 可选才有默认值
+}>(), {
+  count: 0                  // 默认值
+})`
 
 // ========== Slots 演示 ==========
 const slotVariant = ref(1)
@@ -43,8 +79,8 @@ const customColor = ref('green')
 
 // ========== provide/inject 演示 ==========
 const themeMode = ref<'light' | 'dark'>('light')
-provide('theme', themeMode)
-provide('appName', ref('Vue 教学项目'))
+provide(themeKey, themeMode)
+provide(appNameKey, ref('Vue 教学项目'))
 
 function toggleTheme() {
   themeMode.value = themeMode.value === 'light' ? 'dark' : 'light'
@@ -77,8 +113,8 @@ function addLog(msg: string) {
         <ChildCard
           :message="parentMessage"
           :score="scoreFromChild"
-          @respond="(msg: string) => { childFeedback = msg; addLog('子组件回复: ' + msg) }"
-          @change-score="(delta: number) => { scoreFromChild += delta; addLog('分数变化: ' + delta) }"
+          @respond="onChildRespond"
+          @change-score="onScoreChange"
         />
         <p>子组件反馈：<strong>{{ childFeedback }}</strong></p>
         <p class="tip">子组件收到 props 后只读使用，不能修改。需要修改时通过 emit 通知父组件。</p>
@@ -126,29 +162,12 @@ const emit = defineEmits&lt;{
           <button @click="validatedTags.push('Pinia')">➕ 添加标签</button>
           <button @click="validatedTags.pop()" :disabled="!validatedTags.length">➖ 移除标签</button>
         </div>
-        <div class="code-block">
-          <pre>// Props 支持的类型：
-defineProps&lt;{
-  // 基础类型
-  title: string              // 字符串
-  count: number              // 数字
-  visible: boolean           // 布尔值
-
-  // 复杂类型
-  tags: string[]             // 数组
-  user: { name: string }     // 对象字面量
-  callback: (id: number) => void  // 函数
-  status?: 'active' | 'inactive'  // 可选 + 联合类型
-}&gt;()
-
-// 设置默认值
-withDefaults(defineProps&lt;{
-  title: string
-  count?: number            // 可选才有默认值
-}&gt;(), {
-  count: 0                  // 默认值
-})</pre>
-        </div>
+        <DemoBox title="Props 类型验证 — defineProps 泛型" :code="codePropsValidation">
+          <p>标题：<strong>{{ validatedTitle }}</strong></p>
+          <p>数量：<strong>{{ validatedCount }}</strong> (typeof: {{ typeof validatedCount }})</p>
+          <p>标签：<span v-for="t in validatedTags" :key="t" style="background:#42b883;color:white;padding:2px 8px;border-radius:10px;margin:2px;font-size:12px;">{{ t }}</span></p>
+          <p class="tip">传入错误类型时 TypeScript 会报错，Vue 运行时也会警告</p>
+        </DemoBox>
         <p class="tip">传入错误类型时 TypeScript 会报错，Vue 运行时也会警告。这就是类型安全的好处。</p>
       </div>
 
@@ -310,7 +329,7 @@ emit('update', 42, { name: 'test' })
           </template>
         </SlotDemo>
         <div class="code-block">
-          <pre>// 子组件：通过 :items="data" 绑定数据到插槽
+          <pre v-pre>// 子组件：通过 :items="data" 绑定数据到插槽
 &lt;slot :items="items" /&gt;
 // 等价于
 &lt;slot :items="items" item-name="items" /&gt;

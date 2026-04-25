@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, defineAsyncComponent } from 'vue'
 import AsyncSetupDemo from '../components/AsyncSetupDemo.vue'
+import DemoBox from '../components/DemoBox.vue'
 
 // ==================== 第10课：内置组件 ====================
 //
@@ -83,6 +84,24 @@ const AsyncChild = defineAsyncComponent(() =>
 
 const showAsync = ref(false)
 const showAsyncSetup = ref(false)
+
+const codeSuspense = `// AsyncSetupDemo.vue
+<script setup>
+// async setup — Suspense 等待此函数完成
+const data = await new Promise(resolve => {
+  setTimeout(() => resolve('数据加载完成'), 2000)
+})
+\x3c/script>
+
+// 父组件
+<Suspense>
+  <template #default>
+    <AsyncSetupDemo />
+  </template>
+  <template #fallback>
+    <div>加载中...</div>
+  </template>
+</Suspense>`
 </script>
 
 <template>
@@ -211,25 +230,21 @@ const showAsyncSetup = ref(false)
             </template>
           </Suspense>
         </div>
-        <div class="code-block">
-          <pre>// AsyncSetupDemo.vue
-&lt;script setup&gt;
-// async setup — Suspense 等待此函数完成
-const data = await new Promise(resolve =&gt; {
-  setTimeout(() =&gt; resolve('数据加载完成'), 2000)
-})
-&lt;/script&gt;
-
-// 父组件
-&lt;Suspense&gt;
-  &lt;template #default&gt;
-    &lt;AsyncSetupDemo /&gt;
-  &lt;/template&gt;
-  &lt;template #fallback&gt;
-    &lt;div&gt;加载中...&lt;/div&gt;
-  &lt;/template&gt;
-&lt;/Suspense&gt;</pre>
-        </div>
+        <DemoBox title="Suspense + async setup 实时演示" :code="codeSuspense">
+          <button @click="showAsyncSetup = !showAsyncSetup">
+            {{ showAsyncSetup ? '卸载' : '加载' }}async setup 组件
+          </button>
+          <div class="suspense-area" v-if="showAsyncSetup">
+            <Suspense>
+              <template #default>
+                <AsyncSetupDemo />
+              </template>
+              <template #fallback>
+                <div class="loading">⏳ 等待 async setup 完成...</div>
+              </template>
+            </Suspense>
+          </div>
+        </DemoBox>
         <p class="tip">async setup 是 Suspense 更常见的使用场景，适合数据预加载</p>
       </div>
     </div>

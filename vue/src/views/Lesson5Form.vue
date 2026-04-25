@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import DemoBox from '../components/DemoBox.vue'
 
 // ==================== 第5课：表单绑定与 v-model ====================
 //
@@ -17,6 +18,16 @@ import { ref, computed } from 'vue'
 // .lazy  → 改用 change 事件（而非 input）
 // .number → 自动转为数字
 // .trim  → 自动去除首尾空格
+//
+// ⚠️ 常见错误：
+// - v-model 绑定 null 给 select：应绑定空字符串 ''
+// - 多个 checkbox 不绑定数组：v-model 应指向 string[]
+// - 忘记 .number 修饰符：输入框值始终是字符串
+//
+// 💡 最佳实践：
+// - 简单表单用 computed 验证，复杂表单用 VeeValidate
+// - select 的 disabled option 用 value=""
+// - 自定义组件 v-model 用 defineModel（Vue 3.4+）
 
 // --- 文本输入 ---
 const username = ref('')
@@ -49,8 +60,11 @@ const colors = [
 
 // --- 修饰符 ---
 const ageInput = ref<string | number>('')
+const rawAgeInput = ref('')
 const lazyInput = ref('')
+const lazyInputLazy = ref('')
 const trimInput = ref('')
+const rawTrimInput = ref('')
 
 const ageNumber = computed(() => {
   const n = Number(ageInput.value)
@@ -88,6 +102,25 @@ function submitForm() {
   if (!isFormValid.value) return
   alert(`提交成功！\n姓名：${formName.value}\n邮箱：${formEmail.value}\n年龄：${formAge.value}`)
 }
+
+const codeCheckbox = `// 多个 checkbox 绑定同一个数组
+const fruits = ['苹果', '香蕉', '橙子']
+const selected = ref<string[]>([])
+
+// 模板中：每个 checkbox 的 :value 不同，v-model 指向同一数组
+// <input type="checkbox" :value="fruit" v-model="selected" />
+// 勾选时 value 被 push 进数组，取消勾选时从数组中移除`
+
+const codeFormValidation = `// 手动验证：computed + 条件渲染错误提示
+const emailError = computed(() => {
+  if (!email.value) return ''
+  return /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email.value)
+    ? '' : '请输入有效的邮箱地址'
+})
+
+// 验证库推荐：
+// VeeValidate + yup — 功能最全
+// Vuelidate — 轻量级`
 </script>
 
 <template>
@@ -137,15 +170,16 @@ function submitForm() {
           </label>
         </div>
         <p>已选水果：{{ selectedFruits.join('、') || '无' }}</p>
-        <div class="code-block">
-          <pre>// 多个 checkbox 绑定同一个数组
-const fruits = ['苹果', '香蕉', '橙子']
-const selected = ref&lt;string[]&gt;([])
-
-// 模板中：每个 checkbox 的 :value 不同，v-model 指向同一数组
-// &lt;input type="checkbox" :value="fruit" v-model="selected" /&gt;
-// 勾选时 value 被 push 进数组，取消勾选时从数组中移除</pre>
-        </div>
+        <DemoBox title="多个 checkbox 绑定同一个数组" :code="codeCheckbox">
+          <p>选择你喜欢的水果：</p>
+          <div class="checkbox-group">
+            <label v-for="fruit in fruits" :key="fruit" class="checkbox-label">
+              <input type="checkbox" :value="fruit" v-model="selectedFruits" />
+              {{ fruit }}
+            </label>
+          </div>
+          <p>已选水果：{{ selectedFruits.join('、') || '无' }}</p>
+        </DemoBox>
         <p class="tip">当多个 checkbox 的 v-model 绑定同一个数组时，勾选会将 :value 的值加入数组，取消勾选会移除。这是 Vue 处理多选的惯用模式。</p>
       </div>
     </div>
@@ -182,16 +216,61 @@ const selected = ref&lt;string[]&gt;([])
     </div>
 
     <div class="section">
-      <h2>🔹 v-model 修饰符</h2>
+      <h2>🔹 v-model 修饰符 — 实时对比</h2>
       <div class="card">
-        <label>.number：<input v-model.number="ageInput" placeholder="输入年龄" /></label>
-        <p>类型：{{ typeof ageNumber }}，值：{{ ageNumber }}</p>
+        <h3>.number — 自动转数字</h3>
+        <div class="compare-grid">
+          <div class="compare-col bad">
+            <h4>❌ 无修饰符（始终是字符串）</h4>
+            <input v-model="rawAgeInput" placeholder="输入年龄" />
+            <p>typeof = <strong>{{ typeof rawAgeInput }}</strong></p>
+            <p>值 = "{{ rawAgeInput }}"</p>
+            <p class="tip">输入 18 → typeof 仍是 string</p>
+          </div>
+          <div class="compare-col good">
+            <h4>✅ .number（自动转数字）</h4>
+            <input v-model.number="ageInput" placeholder="输入年龄" />
+            <p>typeof = <strong>{{ typeof ageNumber }}</strong></p>
+            <p>值 = {{ ageNumber }}</p>
+            <p class="tip">输入 18 → typeof 为 number</p>
+          </div>
+        </div>
+      </div>
 
-        <label>.lazy：<input v-model.lazy="lazyInput" placeholder="失焦时才更新" /></label>
-        <p>值：{{ lazyInput || '（空）' }}</p>
+      <div class="card">
+        <h3>.lazy — 失焦时才更新</h3>
+        <div class="compare-grid">
+          <div class="compare-col bad">
+            <h4>无修饰符（实时更新）</h4>
+            <input v-model="lazyInput" placeholder="每次按键都更新" />
+            <p>值：<strong>{{ lazyInput || '（空）' }}</strong></p>
+            <p class="tip">每次按键都触发更新</p>
+          </div>
+          <div class="compare-col good">
+            <h4>.lazy（失焦/回车时更新）</h4>
+            <input v-model.lazy="lazyInputLazy" placeholder="失焦或回车时才更新" />
+            <p>值：<strong>{{ lazyInputLazy || '（空）' }}</strong></p>
+            <p class="tip">change 事件才触发，减少频繁更新</p>
+          </div>
+        </div>
+      </div>
 
-        <label>.trim：<input v-model.trim="trimInput" placeholder="自动去空格" /></label>
-        <p>原始长度：{{ trimInput.length }}（空格已去除）</p>
+      <div class="card">
+        <h3>.trim — 自动去首尾空格</h3>
+        <div class="compare-grid">
+          <div class="compare-col bad">
+            <h4>无修饰符（保留空格）</h4>
+            <input v-model="rawTrimInput" placeholder="试试输入前后空格" />
+            <p>值："{{ rawTrimInput }}"</p>
+            <p>长度：<strong>{{ rawTrimInput.length }}</strong></p>
+          </div>
+          <div class="compare-col good">
+            <h4>.trim（自动去空格）</h4>
+            <input v-model.trim="trimInput" placeholder="试试输入前后空格" />
+            <p>值："{{ trimInput }}"</p>
+            <p>长度：<strong>{{ trimInput.length }}</strong></p>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -214,21 +293,23 @@ const selected = ref&lt;string[]&gt;([])
           </label>
           <button @click="submitForm" :disabled="!isFormValid">✅ 提交</button>
         </div>
-        <div class="code-block">
-          <pre>// 手动验证：computed + 条件渲染错误提示
-const emailError = computed(() => {
-  if (!email.value) return ''
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value)
-    ? '' : '请输入有效的邮箱地址'
-})
-
-// 验证库推荐：
-// VeeValidate + yup — 功能最全
-// Vuelidate — 轻量级
-// 
-// import { useField, useForm } from 'vee-validate'
-// const { value, errorMessage } = useField('email', emailRule)</pre>
-        </div>
+        <DemoBox title="computed 实现实时表单验证" :code="codeFormValidation">
+          <div class="form-demo">
+            <label>
+              姓名：<input v-model="formName" placeholder="至少2个字符" />
+              <span v-if="formNameError" class="error">{{ formNameError }}</span>
+            </label>
+            <label>
+              邮箱：<input v-model="formEmail" placeholder="example@mail.com" />
+              <span v-if="formEmailError" class="error">{{ formEmailError }}</span>
+            </label>
+            <label>
+              年龄：<input v-model="formAge" placeholder="1-150" />
+              <span v-if="formAgeError" class="error">{{ formAgeError }}</span>
+            </label>
+            <button @click="submitForm" :disabled="!isFormValid">✅ 提交</button>
+          </div>
+        </DemoBox>
         <p class="tip">简单表单用 computed 验证即可，复杂表单推荐 VeeValidate</p>
       </div>
     </div>
@@ -262,6 +343,11 @@ const emailError = computed(() => {
 </template>
 
 <style scoped>
+.compare-grid { display: flex; gap: 16px; margin-top: 8px; }
+.compare-col { flex: 1; padding: 14px; border-radius: 8px; }
+.compare-col.bad { background: #fff5f5; border: 2px solid #f4433633; }
+.compare-col.good { background: #f0faf5; border: 2px solid #42b88333; }
+.compare-col h4 { margin: 0 0 8px; font-size: 14px; }
 label { display: block; margin: 8px 0; font-weight: 500; }
 input[type="text"], textarea, select {
   width: 100%; padding: 8px 12px; border: 2px solid #e9ecef;

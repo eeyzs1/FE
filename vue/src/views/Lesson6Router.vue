@@ -13,8 +13,19 @@ import { ref, computed } from 'vue'
 // 4. useRoute()      — 获取当前路由信息
 // 5. 路由参数        — 动态路由 /user/:id
 // 6. 嵌套路由        — 路由中的路由
+//
+// ⚠️ 常见错误：
+// - 用 <a href> 代替 <RouterLink>：导致页面刷新
+// - 在路由守卫中直接修改状态：可能触发无限导航
+// - 忘记处理路由参数变化：/user/1 → /user/2 组件复用不触发 mounted
+//
+// 💡 最佳实践：
+// - 路由组件使用懒加载：() => import('./Page.vue')
+// - 用 onBeforeRouteUpdate 处理参数变化
+// - 路由守卫返回 false 阻止导航，返回路径重定向
 
 import { useRouter, useRoute } from 'vue-router'
+import DemoBox from '../components/DemoBox.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -67,6 +78,41 @@ function simulateGuard() {
   guardLog.value.push('🟡 [组件内] onBeforeRouteLeave — 离开该组件时触发')
   guardLog.value.push('✅ 守卫链通过，导航放行！')
 }
+
+const codeRouterGuards = `// 1️⃣ 全局守卫 — 对所有路由生效
+router.beforeEach((to, from) => {
+  console.log('导航到:', to.path)
+  // return false 可阻止导航
+  // return '/login' 可重定向
+})
+
+router.afterEach((to, from) => {
+  // 导航完成后执行（如页面统计）
+})
+
+// 2️⃣ 路由独享守卫 — 写在路由配置中
+const routes = [
+  {
+    path: '/admin',
+    beforeEnter: (to, from) => {
+      // 仅对 /admin 生效
+      if (!isAdmin()) return '/login'
+    }
+  }
+]
+
+// 3️⃣ 组件内守卫 — 写在组件中
+import { onBeforeRouteLeave, onBeforeRouteUpdate } from 'vue-router'
+
+onBeforeRouteLeave((to, from) => {
+  // 离开当前组件时触发
+  const answer = confirm('确定离开？')
+  if (!answer) return false
+})
+
+onBeforeRouteUpdate((to, from) => {
+  // 路由参数变化但组件复用时触发
+})`
 </script>
 
 <template>
@@ -144,43 +190,12 @@ function simulateGuard() {
         <div v-if="guardLog.length" class="log-area">
           <p v-for="(log, i) in guardLog" :key="i" class="log-item">{{ log }}</p>
         </div>
-        <div class="code-block">
-          <pre>// 1️⃣ 全局守卫 — 对所有路由生效
-router.beforeEach((to, from) => {
-  console.log('导航到:', to.path)
-  // return false 可阻止导航
-  // return '/login' 可重定向
-})
-
-router.afterEach((to, from) => {
-  // 导航完成后执行（如页面统计）
-})
-
-// 2️⃣ 路由独享守卫 — 写在路由配置中
-const routes = [
-  {
-    path: '/admin',
-    beforeEnter: (to, from) => {
-      // 仅对 /admin 生效
-      if (!isAdmin()) return '/login'
-    }
-  }
-]
-
-// 3️⃣ 组件内守卫 — 写在组件中
-import { onBeforeRouteLeave, onBeforeRouteUpdate } from 'vue-router'
-
-onBeforeRouteLeave((to, from) => {
-  // 离开当前组件时触发（如表单未保存提示）
-  const answer = confirm('确定离开？未保存的数据将丢失')
-  if (!answer) return false
-})
-
-onBeforeRouteUpdate((to, from) => {
-  // 路由参数变化但组件复用时触发
-  // 如 /user/1 → /user/2
-})</pre>
-        </div>
+        <DemoBox title="路由守卫执行流程模拟" :code="codeRouterGuards">
+          <button @click="simulateGuard">模拟路由守卫执行</button>
+          <div v-if="guardLog.length" class="log-area">
+            <p v-for="(log, i) in guardLog" :key="i" class="log-item">{{ log }}</p>
+          </div>
+        </DemoBox>
         <p class="tip">🟢 全局守卫：router.beforeEach / afterEach，对所有路由生效</p>
         <p class="tip">🔵 路由独享守卫：beforeEnter，只在进入该路由时触发</p>
         <p class="tip">🟡 组件内守卫：onBeforeRouteLeave / onBeforeRouteUpdate，与组件生命周期绑定</p>

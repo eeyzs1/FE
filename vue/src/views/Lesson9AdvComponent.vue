@@ -5,6 +5,7 @@ import TabHome from '../components/TabHome.vue'
 import TabProfile from '../components/TabProfile.vue'
 import TabSettings from '../components/TabSettings.vue'
 import InjectDemo from '../components/InjectDemo.vue'
+import DemoBox from '../components/DemoBox.vue'
 
 // ==================== 第9课：模板引用 + provide/inject + 动态组件 ====================
 //
@@ -19,6 +20,17 @@ import InjectDemo from '../components/InjectDemo.vue'
 // 动态组件：
 // - <component :is="..."> 动态切换组件
 // - <KeepAlive> 缓存组件状态
+//
+// ⚠️ 常见错误：
+// - 动态组件不用 shallowRef：导致深层响应式性能开销
+// - 动态组件不用 markRaw：组件对象被代理导致警告
+// - KeepAlive 不设 max：缓存过多组件导致内存泄漏
+// - ref 在 mounted 前访问：值为 null
+//
+// 💡 最佳实践：
+// - 动态组件用 shallowRef + markRaw 存储
+// - KeepAlive 配合 include/exclude 精确控制缓存
+// - Vue 3.5+ 推荐用 useTemplateRef 替代 ref(null)
 
 // --- 模板引用 ---
 const inputRef = ref<HTMLInputElement | null>(null)
@@ -49,6 +61,15 @@ const newInputRef = useTemplateRef<HTMLInputElement>('newInput')
 function focusNewInput() {
   newInputRef.value?.focus()
 }
+
+const codeUseTemplateRef = `// 旧方式（仍然有效）
+const inputRef = ref<HTMLInputElement | null>(null)
+// template: <input ref="inputRef" />
+
+// 新方式（Vue 3.5+，推荐）
+const inputRef = useTemplateRef<HTMLInputElement>('inputRef')
+// template: <input ref="inputRef" />
+// ref 字符串必须与 useTemplateRef 参数一致`
 
 // useId — 生成 SSR 安全的唯一 ID（Vue 3.5+）
 const uniqueId = useId()
@@ -127,16 +148,12 @@ const includeMode = ref<'all' | 'include' | 'exclude'>('all')
         <div class="btn-group">
           <button @click="focusNewInput">🎯 useTemplateRef 聚焦</button>
         </div>
-        <div class="code-block">
-          <pre>// 旧方式（仍然有效）
-const inputRef = ref&lt;HTMLInputElement | null&gt;(null)
-// template: &lt;input ref="inputRef" /&gt;
-
-// 新方式（Vue 3.5+，推荐）
-const inputRef = useTemplateRef&lt;HTMLInputElement&gt;('inputRef')
-// template: &lt;input ref="inputRef" /&gt;
-// ref 字符串必须与 useTemplateRef 参数一致</pre>
-        </div>
+        <DemoBox title="useTemplateRef() — Vue 3.5+ 新的模板引用方式" :code="codeUseTemplateRef">
+          <input ref="newInput" placeholder="useTemplateRef 演示" />
+          <div class="btn-group">
+            <button @click="focusNewInput">🎯 useTemplateRef 聚焦</button>
+          </div>
+        </DemoBox>
         <p class="tip">useTemplateRef 的优势：更明确的语义，避免 ref 变量名与模板 ref 绑定混淆</p>
       </div>
 

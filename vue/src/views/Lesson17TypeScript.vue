@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, reactive } from 'vue'
+import DemoBox from '../components/DemoBox.vue'
 
 // ==================== 第17课：TypeScript 与 Vue ====================
 //
@@ -99,6 +100,23 @@ function exposeReset() { exposeCount.value = 0 }
 function exposeIncrement() { exposeCount.value++ }
 defineExpose({ exposeCount, exposeReset, exposeIncrement })
 
+const codeReactiveInterface = `interface User {
+  name: string
+  age: number
+  email: string
+  address?: string    // 可选属性
+}
+
+const user = reactive<User>({
+  name: '张三',
+  age: 25,
+  email: 'zhangsan@example.com',
+})`
+
+const codeUnionStatus = `type Status = 'idle' | 'loading' | 'success' | 'error'
+const status = ref<Status>('idle')
+// 只能赋值为这四个字符串，其他值会报错`
+
 // --- 泛型组件 ---
 const genericCode = [
   '// 泛型组件（Vue 3.3+）',
@@ -154,26 +172,14 @@ const instanceTypeCode = [
     <div class="section">
       <h2>🔹 reactive + interface</h2>
       <div class="card">
-        <div class="code-block">
-          <pre>interface User {
-  name: string
-  age: number
-  email: string
-  address?: string    // 可选属性
-}
-
-const user = reactive&lt;User&gt;({
-  name: '张三',
-  age: 25,
-  email: 'zhangsan@example.com',
-})</pre>
-        </div>
-        <div class="ts-demo">
-          <label>姓名：<input v-model="user.name" /></label>
-          <label>年龄：<input type="number" v-model.number="user.age" /></label>
-          <label>邮箱：<input v-model="user.email" /></label>
-        </div>
-        <p>{{ userInfo }}</p>
+        <DemoBox title="reactive + interface — 类型安全的对象" :code="codeReactiveInterface">
+          <div class="ts-demo">
+            <label>姓名：<input v-model="user.name" /></label>
+            <label>年龄：<input type="number" v-model.number="user.age" /></label>
+            <label>邮箱：<input v-model="user.email" /></label>
+          </div>
+          <p>{{ userInfo }}</p>
+        </DemoBox>
         <p class="tip">interface 定义类型，reactive&lt;T&gt; 标注，IDE 自动补全</p>
       </div>
     </div>
@@ -220,18 +226,21 @@ function handleInput(e: Event) {
     <div class="section">
       <h2>🔹 联合类型 + 状态管理</h2>
       <div class="card">
-        <p>状态：<strong>{{ status }}</strong></p>
-        <div class="btn-group">
-          <button @click="status = 'idle'">⏸️ idle</button>
-          <button @click="status = 'loading'">⏳ loading</button>
-          <button @click="status = 'success'">✅ success</button>
-          <button @click="status = 'error'">❌ error</button>
-        </div>
-        <div class="code-block">
-          <pre>type Status = 'idle' | 'loading' | 'success' | 'error'
-const status = ref&lt;Status&gt;('idle')
-// 只能赋值为这四个字符串，其他值会报错</pre>
-        </div>
+        <DemoBox title="联合类型 + 状态管理" :code="codeUnionStatus">
+          <p>当前状态：<strong>{{ status }}</strong></p>
+          <div class="btn-group">
+            <button @click="status = 'idle'">⏸️ idle</button>
+            <button @click="status = 'loading'">⏳ loading</button>
+            <button @click="status = 'success'">✅ success</button>
+            <button @click="status = 'error'">❌ error</button>
+          </div>
+          <div class="status-display" :class="status">
+            <span v-if="status === 'idle'">⏸️ 空闲状态</span>
+            <span v-else-if="status === 'loading'">⏳ 加载中...</span>
+            <span v-else-if="status === 'success'">✅ 操作成功</span>
+            <span v-else>❌ 发生错误</span>
+          </div>
+        </DemoBox>
         <p class="tip">联合类型限制可选值，防止拼写错误，IDE 自动补全</p>
       </div>
     </div>
@@ -307,4 +316,9 @@ childRef.value?.exposeReset()</pre>
 .ts-demo label { display: flex; align-items: center; gap: 8px; font-size: 14px; }
 .ts-demo input { flex: 1; }
 .ts-demo input[type="checkbox"] { width: auto; flex: none; }
+.status-display { padding: 12px; border-radius: 8px; text-align: center; margin-top: 8px; font-weight: bold; }
+.status-display.idle { background: #f5f5f5; color: #666; }
+.status-display.loading { background: #fff3e0; color: #e65100; }
+.status-display.success { background: #e8f5e9; color: #2e7d32; }
+.status-display.error { background: #ffebee; color: #c62828; }
 </style>

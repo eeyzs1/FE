@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onErrorCaptured } from 'vue'
 import ErrorChild from '../components/ErrorChild.vue'
+import DemoBox from '../components/DemoBox.vue'
 
 // ==================== 第19课：SSR + 无障碍 + 安全 + 动画技巧 ====================
 
@@ -49,7 +50,7 @@ const securityItems = ref([
 const capturedError = ref<string | null>(null)
 const errorLog = ref<string[]>([])
 
-onErrorCaptured((err, instance, info) => {
+onErrorCaptured((err, _instance, info) => {
   const msg = `捕获错误：${err.message}（来源：${info}）`
   capturedError.value = msg
   errorLog.value.push(`[${new Date().toLocaleTimeString()}] ${msg}`)
@@ -73,6 +74,7 @@ const showBounce = ref(false)
 const showFlip = ref(false)
 const showStagger = ref(false)
 const staggerItems = ref(['A', 'B', 'C', 'D', 'E'])
+const xssInput = ref('<b>加粗文字</b>')
 
 function toggleBounce() {
   showBounce.value = !showBounce.value
@@ -85,6 +87,41 @@ function toggleFlip() {
 function toggleStagger() {
   showStagger.value = !showStagger.value
 }
+
+const codeXss = `// ❌ 危险：v-html 渲染用户输入
+<div v-html="userInput"></div>  // 可能注入脚本
+
+// ✅ 安全：自动转义
+<div>{{ userInput }}</div>  // 自动转义 HTML
+
+// ❌ 危险：动态 URL
+<a :href="userUrl">链接</a>  // 可能是 javascript:alert(1)
+
+// ✅ 安全：校验协议
+<a :href="sanitizeUrl(userUrl)">链接</a>
+
+// 环境变量
+VITE_API_URL=https://api.example.com  // ✅ 前缀 VITE_ 暴露给前端
+SECRET_KEY=xxx                          // ❌ 不要暴露给前端`
+
+const codeErrorCaptured = `// 组件级错误捕获
+onErrorCaptured((err, instance, info) => {
+  console.error('捕获到后代组件错误：', err)
+  // return false 阻止错误继续向上传播
+  // return true 或不返回则继续传播
+  return false
+})
+
+// 全局错误处理
+app.config.errorHandler = (err, instance, info) => {
+  console.error('全局错误：', err)
+  // 上报错误到监控服务
+}
+
+// 错误边界模式（Vue 没有内置，需手动实现）
+// 1. onErrorCaptured 捕获错误
+// 2. 设置 error 状态
+// 3. 条件渲染：正常内容 vs 错误回退 UI`
 </script>
 
 <template>
@@ -140,23 +177,22 @@ function toggleStagger() {
             <span class="defense">{{ item.defense }}</span>
           </div>
         </div>
-        <div class="code-block">
-          <pre v-pre>// ❌ 危险：v-html 渲染用户输入
-&lt;div v-html="userInput"&gt;&lt;/div&gt;  // 可能注入脚本
-
-// ✅ 安全：自动转义
-&lt;div&gt;{{ userInput }}&lt;/div&gt;  // 自动转义 HTML
-
-// ❌ 危险：动态 URL
-&lt;a :href="userUrl"&gt;链接&lt;/a&gt;  // 可能是 javascript:alert(1)
-
-// ✅ 安全：校验协议
-&lt;a :href="sanitizeUrl(userUrl)"&gt;链接&lt;/a&gt;
-
-// 环境变量
-VITE_API_URL=https://api.example.com  // ✅ 前缀 VITE_ 暴露给前端
-SECRET_KEY=xxx                          // ❌ 不要暴露给前端</pre>
-        </div>
+        <DemoBox title="XSS 防护 — v-html vs {{ }} 安全对比" :code="codeXss">
+          <div class="security-demo">
+            <label>模拟用户输入：<input v-model="xssInput" placeholder="试试输入 <script>alert(1)</script>" style="width:100%" /></label>
+            <div class="compare-row">
+              <div class="compare-col">
+                <h4>❌ v-html 渲染</h4>
+                <div class="unsafe-output" v-html="xssInput"></div>
+              </div>
+              <div class="compare-col">
+                <h4>✅ {{ }} 自动转义</h4>
+                <div class="safe-output">{{ xssInput }}</div>
+              </div>
+            </div>
+            <p class="tip">输入 <code>&lt;img src=x onerror=alert(1)&gt;</code> 看看区别！v-html 会执行，{{ }} 会转义</p>
+          </div>
+        </DemoBox>
         <p class="tip">Vue 模板 {{ }} 自动转义 HTML，这是最基本的安全保障</p>
       </div>
     </div>
@@ -166,39 +202,21 @@ SECRET_KEY=xxx                          // ❌ 不要暴露给前端</pre>
       <div class="card">
         <h3>onErrorCaptured — 捕获后代组件错误</h3>
         <p>在祖先组件中捕获后代组件抛出的错误，防止整个应用崩溃</p>
-        <div class="btn-group">
-          <button @click="simulateError" class="warn">💥 模拟子组件错误</button>
-          <button @click="clearError" v-if="capturedError">🧹 清除错误</button>
-        </div>
-        <div v-if="capturedError" class="error-box">
-          <p>❌ {{ capturedError }}</p>
-        </div>
-        <div v-if="showErrorChild && !capturedError">
-          <ErrorChild />
-        </div>
-        <div v-if="errorLog.length" class="log-area">
-          <p v-for="(log, i) in errorLog" :key="i" class="log-item">{{ log }}</p>
-        </div>
-        <div class="code-block">
-          <pre>// 组件级错误捕获
-onErrorCaptured((err, instance, info) => {
-  console.error('捕获到后代组件错误：', err)
-  // return false 阻止错误继续向上传播
-  // return true 或不返回则继续传播
-  return false
-})
-
-// 全局错误处理
-app.config.errorHandler = (err, instance, info) => {
-  console.error('全局错误：', err)
-  // 上报错误到监控服务
-}
-
-// 错误边界模式（Vue 没有内置，需手动实现）
-// 1. onErrorCaptured 捕获错误
-// 2. 设置 error 状态
-// 3. 条件渲染：正常内容 vs 错误回退 UI</pre>
-        </div>
+        <DemoBox title="onErrorCaptured — 捕获后代组件错误" :code="codeErrorCaptured">
+          <div class="btn-group">
+            <button @click="simulateError" class="warn">💥 模拟子组件错误</button>
+            <button @click="clearError" v-if="capturedError">🧹 清除错误</button>
+          </div>
+          <div v-if="capturedError" class="error-box">
+            <p>❌ {{ capturedError }}</p>
+          </div>
+          <div v-if="showErrorChild && !capturedError">
+            <ErrorChild />
+          </div>
+          <div v-if="errorLog.length" class="log-area">
+            <p v-for="(log, i) in errorLog" :key="i" class="log-item">{{ log }}</p>
+          </div>
+        </DemoBox>
         <p class="tip">onErrorCaptured 只能捕获后代组件的错误，不能捕获自身错误</p>
         <p class="tip">生产环境建议配合 app.config.errorHandler 全局兜底</p>
       </div>
@@ -264,6 +282,12 @@ app.config.errorHandler = (err, instance, info) => {
 </template>
 
 <style scoped>
+.security-demo { margin-top: 8px; }
+.compare-row { display: flex; gap: 12px; margin-top: 8px; }
+.compare-row .compare-col { flex: 1; padding: 12px; border-radius: 8px; border: 1px solid #e9ecef; background: white; }
+.compare-row .compare-col h4 { margin: 0 0 8px; font-size: 14px; }
+.unsafe-output { padding: 8px; background: #fff3f3; border: 1px solid #ffcdd2; border-radius: 4px; min-height: 30px; }
+.safe-output { padding: 8px; background: #f0faf5; border: 1px solid #c8e6c9; border-radius: 4px; min-height: 30px; }
 .ssr-compare { display: flex; gap: 16px; margin-bottom: 12px; }
 .compare-col p { font-size: 13px; margin: 4px 0; }
 .flow { font-size: 13px; color: #42b883; font-weight: bold; margin: 8px 0; }

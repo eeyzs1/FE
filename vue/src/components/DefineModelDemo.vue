@@ -8,7 +8,8 @@ const title = defineModel<string>('title', { required: true })
 const formattedText = defineModel<string>('formattedText', {
   required: true,
   set(value) {
-    return formattedText.modifiers?.capitalize
+    const mods = (formattedText as unknown as { modifiers?: Record<string, boolean> }).modifiers
+    return mods?.capitalize
       ? value.charAt(0).toUpperCase() + value.slice(1)
       : value
   },

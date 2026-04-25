@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import DemoBox from '../components/DemoBox.vue'
 
 // ==================== 第18课：测试 + 性能优化 + 生产部署 ====================
 
@@ -74,6 +75,17 @@ function triggerRender() {
   renderCount.value++
   dynamicContent.value = `更新 ${renderCount.value}`
 }
+
+const codeVMemo = `// v-once — 只渲染一次，后续跳过
+<div v-once>{{ staticContent }}</div>
+
+// v-memo — 条件满足时才更新
+<div v-memo="[renderCount > 3]">
+  {{ dynamicContent }}
+</div>
+
+// v-memo=[] 等价于 v-once
+// v-memo 适合大型列表/表格的性能优化`
 </script>
 
 <template>
@@ -133,32 +145,21 @@ function triggerRender() {
     <div class="section">
       <h2>🔹 v-once 和 v-memo</h2>
       <div class="card">
-        <p>渲染次数：{{ renderCount }}</p>
-        <button @click="triggerRender">🔄 触发重新渲染</button>
-
-        <div class="demo-area">
-          <div class="demo-box">
-            <p>普通内容（每次渲染都更新）：{{ dynamicContent }}</p>
+        <DemoBox title="v-once 和 v-memo 实时对比" :code="codeVMemo">
+          <p>渲染次数：{{ renderCount }}</p>
+          <button @click="triggerRender">🔄 触发重新渲染</button>
+          <div class="demo-area">
+            <div class="demo-box">
+              <p>普通内容（每次渲染都更新）：{{ dynamicContent }}</p>
+            </div>
+            <div class="demo-box" v-once>
+              <p>v-once 内容（只渲染一次）：{{ staticContent }}，渲染时值：{{ renderCount }}</p>
+            </div>
+            <div class="demo-box" v-memo="[renderCount > 3]">
+              <p>v-memo 内容（renderCount > 3 时才更新）：{{ dynamicContent }}</p>
+            </div>
           </div>
-          <div class="demo-box" v-once>
-            <p>v-once 内容（只渲染一次）：{{ staticContent }}，渲染时值：{{ renderCount }}</p>
-          </div>
-          <div class="demo-box" v-memo="[renderCount > 3]">
-            <p>v-memo 内容（renderCount > 3 时才更新）：{{ dynamicContent }}</p>
-          </div>
-        </div>
-        <div class="code-block">
-          <pre>// v-once — 只渲染一次，后续跳过
-&lt;div v-once&gt;{{ staticContent }}&lt;/div&gt;
-
-// v-memo — 条件满足时才更新
-&lt;div v-memo="[renderCount > 3]"&gt;
-  {{ dynamicContent }}
-&lt;/div&gt;
-
-// v-memo=[] 等价于 v-once
-// v-memo 适合大型列表/表格的性能优化</pre>
-        </div>
+        </DemoBox>
         <p class="tip">v-once 适合纯静态内容，v-memo 适合有条件的缓存</p>
       </div>
     </div>

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, reactive, computed, watch, watchEffect, type WatchStopHandle } from 'vue'
+import DemoBox from '../components/DemoBox.vue'
 
 // ==================== 第2课：计算属性与侦听器 ====================
 //
@@ -14,6 +15,16 @@ import { ref, reactive, computed, watch, watchEffect, type WatchStopHandle } fro
 // - watchEffect() 自动追踪依赖
 // - 高级选项：deep / immediate / once / flush
 // - 可停止侦听、清理副作用
+//
+// ⚠️ 常见错误：
+// - 在 computed 中执行副作用（如修改其他状态、发请求）
+// - 忘记 watch 的 getter 语法：watch(state.count, ...) 无效
+// - watchEffect 中创建的定时器未在 onCleanup 中清理
+//
+// 💡 最佳实践：
+// - computed 只做纯计算，不修改外部状态
+// - 需要副作用时用 watch，需要自动追踪依赖时用 watchEffect
+// - watch reactive 属性时必须用 getter：watch(() => state.count, ...)
 
 const firstName = ref('三')
 const lastName = ref('张')

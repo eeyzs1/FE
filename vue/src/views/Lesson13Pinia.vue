@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useCounterStore, useCounterOptionStore, useCartStore } from '../stores/index'
+import DemoBox from '../components/DemoBox.vue'
 
 // ==================== 第13课：状态管理 Pinia + 插件 ====================
 //
@@ -14,10 +15,36 @@ import { useCounterStore, useCounterOptionStore, useCartStore } from '../stores/
 // 插件 (Plugins) — 扩展 Vue 应用
 // - app.use() 注册插件
 // - 全局注册组件、指令、provide 等
+//
+// ⚠️ 常见错误：
+// - 直接解构 store：const { count } = store → 丢失响应性
+// - 在 action 中用箭头函数：this 指向错误（Option Store）
+// - 忘记 storeToRefs：解构 state/getter 必须用它
+//
+// 💡 最佳实践：
+// - 优先使用 Setup Store 风格（与 Composition API 一致）
+// - 用 storeToRefs 解构 state/getter，方法直接解构
+// - 大型项目用 Pinia 插件做持久化（pinia-plugin-persistedstate）
 
 const counter = useCounterStore()
 const counterOption = useCounterOptionStore()
 const cart = useCartStore()
+
+const codePiniaStore = `// 定义 Store
+const useStore = defineStore('name', () => {
+  const state = ref(0)          // state
+  const getter = computed(...)   // getter
+  function action() { ... }      // action
+  return { state, getter, action }
+})
+
+// 使用 Store
+const store = useStore()
+store.count       // 读取 state
+store.doubled     // 读取 getter
+store.increment() // 调用 action
+store.$reset()    // 重置到初始值
+store.$patch({})  // 批量修改`
 
 // --- 购物车演示 ---
 const products = [
@@ -44,6 +71,7 @@ function simulatePluginInstall() {
 // --- storeToRefs 演示 ---
 // 直接解构 store 会丢失响应性，必须用 storeToRefs
 const { count: counterCount, doubled: counterDoubled } = storeToRefs(counter)
+const { count: destructuredCount, doubled: destructuredDoubled } = { count: counter.count, doubled: counter.doubled }
 // 方法可以直接解构（不需要 storeToRefs）
 const { increment, decrement, reset } = counter
 
@@ -144,23 +172,16 @@ counter.$onAction(({ name, after }) => {
     <div class="section">
       <h2>🔹 Pinia Store 要点</h2>
       <div class="card">
-        <div class="code-block">
-          <pre>// 定义 Store
-const useStore = defineStore('name', () => {
-  const state = ref(0)          // state
-  const getter = computed(...)   // getter
-  function action() { ... }      // action
-  return { state, getter, action }
-})
-
-// 使用 Store
-const store = useStore()
-store.count       // 读取 state
-store.doubled     // 读取 getter
-store.increment() // 调用 action
-store.$reset()    // 重置到初始值
-store.$patch({})  // 批量修改</pre>
-        </div>
+        <DemoBox title="Pinia Store 定义与使用" :code="codePiniaStore">
+          <p>计数：<strong>{{ counter.count }}</strong>，双倍：<strong>{{ counter.doubled }}</strong></p>
+          <div class="btn-group">
+            <button @click="counter.decrement">➖</button>
+            <button @click="counter.$reset()">🔄 $reset</button>
+            <button @click="counter.$patch({ count: counter.count + 5 })">📦 $patch(+5)</button>
+            <button @click="counter.increment">➕</button>
+          </div>
+          <p class="tip">$reset() 重置到初始值，$patch() 批量修改多个 state</p>
+        </DemoBox>
       </div>
     </div>
 
@@ -190,21 +211,23 @@ store.$patch({})  // 批量修改</pre>
     <div class="section">
       <h2>🔹 storeToRefs — 解构保持响应性</h2>
       <div class="card">
-        <p>直接解构 store 会丢失响应性，必须用 <code>storeToRefs</code>：</p>
-        <div class="code-block">
-          <pre>// ❌ 直接解构 — 丢失响应性
-const { count, doubled } = useCounterStore()
-count++ // 不会触发更新！
-
-// ✅ storeToRefs — 保持响应性
-const { count, doubled } = storeToRefs(useCounterStore())
-count.value++ // 正确触发更新
-
-// 方法可以直接解构（不需要 storeToRefs）
-const { increment, decrement } = useCounterStore()</pre>
+        <h3>❌ 直接解构 vs ✅ storeToRefs — 实时对比</h3>
+        <p>点击 increment 后观察两种解构方式的差异：</p>
+        <div class="compare-grid">
+          <div class="compare-col bad">
+            <h4>❌ 直接解构（丢失响应性）</h4>
+            <p>count = <strong>{{ destructuredCount }}</strong></p>
+            <p>doubled = <strong>{{ destructuredDoubled }}</strong></p>
+            <p class="tip">解构时拿到的是快照值，store 变化后不会更新</p>
+          </div>
+          <div class="compare-col good">
+            <h4>✅ storeToRefs（保持响应性）</h4>
+            <p>count = <strong>{{ counterCount }}</strong></p>
+            <p>doubled = <strong>{{ counterDoubled }}</strong></p>
+            <p class="tip">storeToRefs 返回 ref，store 变化后自动同步</p>
+          </div>
         </div>
-        <p>storeToRefs 解构后的值：count = <strong>{{ counterCount }}</strong>，doubled = <strong>{{ counterDoubled }}</strong></p>
-        <div class="btn-group">
+        <div class="btn-group" style="margin-top:12px;">
           <button @click="increment">➕ increment</button>
           <button @click="decrement">➖ decrement</button>
           <button @click="reset">🔄 reset</button>
@@ -355,6 +378,11 @@ pinia.use(piniaLogger)</pre>
 </template>
 
 <style scoped>
+.compare-grid { display: flex; gap: 16px; margin-top: 8px; }
+.compare-col { flex: 1; padding: 14px; border-radius: 8px; }
+.compare-col.bad { background: #fff5f5; border: 2px solid #f4433633; }
+.compare-col.good { background: #f0faf5; border: 2px solid #42b88333; }
+.compare-col h4 { margin: 0 0 8px; font-size: 14px; }
 .clear-btn { background: #f44336; margin-top: 8px; }
 .clear-btn:hover { background: #d32f2f; }
 .del-btn { padding: 4px 10px; background: #f44336; font-size: 12px; border-radius: 6px; }

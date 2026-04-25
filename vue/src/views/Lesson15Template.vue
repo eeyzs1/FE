@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import GlobalButton from '../components/GlobalButton.vue'
+import DemoBox from '../components/DemoBox.vue'
 
 // ==================== 第15课：模板语法详解 + 组件基础 + 组件注册 ====================
 
@@ -22,6 +23,20 @@ const now = ref(new Date().toLocaleTimeString())
 function updateTime() {
   now.value = new Date().toLocaleTimeString()
 }
+
+const codeTemplateExpr = `// ✅ 可以使用的：
+{{ number + 1 }}              // 算术运算
+{{ ok ? 'yes' : 'no' }}      // 三元表达式
+{{ message.split('').reverse().join('') }}  // 方法调用
+{{ Date.now() }}              // 全局对象
+
+// ❌ 不能使用的：
+{{ var a = 1 }}               // 语句，不是表达式
+{{ if (ok) { return 'yes' } }} // 控制流语句
+
+// 模板中可以访问的全局对象：
+// Math, Date, JSON, parseInt, isNaN, etc.
+// 不能访问：window, document, console 等`
 
 // --- 同名简写 ---
 // 当 attribute 名和变量名相同时，可以简写
@@ -82,21 +97,22 @@ const boolRequired = ref(true)
       <div class="card">
         <h3>同名简写（Vue 3.4+）</h3>
         <p>当 attribute 名和绑定的变量名相同时，可以省略值：</p>
-        <div class="code-block">
-          <pre>// 完整写法
-&lt;button :disabled="disabled"&gt;按钮&lt;/button&gt;
-&lt;div :id="id" :title="title"&gt;内容&lt;/div&gt;
-
-// 同名简写（Vue 3.4+）
-&lt;button :disabled&gt;按钮&lt;/button&gt;
-&lt;div :id :title&gt;内容&lt;/div&gt;
-
-// 等价于 :disabled="disabled"、:id="id"、:title="title"</pre>
+        <div class="compare-grid">
+          <div class="compare-col">
+            <h4>完整写法</h4>
+            <button :disabled="disabled" :id="id" :title="title">
+              disabled={{ disabled }}
+            </button>
+            <p class="tip">:disabled="disabled" — 变量名和属性名相同</p>
+          </div>
+          <div class="compare-col">
+            <h4>同名简写</h4>
+            <button :disabled :id :title>
+              disabled={{ disabled }}
+            </button>
+            <p class="tip">:disabled — 省略值，等价于 :disabled="disabled"</p>
+          </div>
         </div>
-        <p>实际演示：</p>
-        <button :disabled="disabled" :id="id" :title="title">
-          disabled={{ disabled }}, id={{ id }}
-        </button>
         <label class="toggle"><input type="checkbox" v-model="disabled" /> 切换 disabled</label>
         <p class="tip">同名简写让模板更简洁，但仅适用于变量名和属性名相同的情况</p>
       </div>
@@ -114,13 +130,17 @@ const boolRequired = ref(true)
             <label class="toggle"><input type="checkbox" v-model="boolRequired" /> required={{ boolRequired }}</label>
           </div>
         </div>
-        <div class="code-block">
-          <pre>// :disabled="false" → 不会渲染 disabled attribute
-// :disabled="true"  → 渲染 disabled attribute
-// 直接写 disabled   → 等价于 :disabled="true"
-
-// 空字符串也是 truthy
-&lt;input disabled="" /&gt;  // 也是禁用的</pre>
+        <div class="compare-grid">
+          <div class="compare-col bad">
+            <h4>:disabled="false"</h4>
+            <p>不渲染 disabled attribute</p>
+            <p>按钮可正常点击</p>
+          </div>
+          <div class="compare-col good">
+            <h4>:disabled="true"</h4>
+            <p>渲染 disabled attribute</p>
+            <p>按钮被禁用</p>
+          </div>
         </div>
         <p class="tip">布尔型 attribute 只需要存在就生效，值是什么不重要</p>
       </div>
@@ -169,21 +189,13 @@ const boolRequired = ref(true)
     <div class="section">
       <h2>🔹 模板表达式限制</h2>
       <div class="card">
-        <div class="code-block">
-          <pre v-pre>// ✅ 可以使用的：
-{{ number + 1 }}              // 算术运算
-{{ ok ? 'yes' : 'no' }}      // 三元表达式
-{{ message.split('').reverse().join('') }}  // 方法调用
-{{ Date.now() }}              // 全局对象
-
-// ❌ 不能使用的：
-{{ var a = 1 }}               // 语句，不是表达式
-{{ if (ok) { return 'yes' } }} // 控制流语句
-
-// 模板中可以访问的全局对象：
-// Math, Date, JSON, parseInt, isNaN, etc.
-// 不能访问：window, document, console 等</pre>
-        </div>
+        <DemoBox title="模板表达式 — 可以 vs 不可以" :code="codeTemplateExpr">
+          <p>算术运算：numberValue + 1 = <strong>{{ numberValue + 1 }}</strong></p>
+          <p>三元表达式：ok ? '是' : '否' = <strong>{{ ok ? '是' : '否' }}</strong></p>
+          <p>方法调用：items.join(' + ') = <strong>{{ items.join(' + ') }}</strong></p>
+          <p>全局对象：Date.now() = <strong>{{ Date.now() }}</strong></p>
+          <label class="toggle"><input type="checkbox" v-model="ok" /> 切换 ok</label>
+        </DemoBox>
         <p class="tip">复杂逻辑应该放在 computed 中，不要写在模板表达式里</p>
       </div>
     </div>
@@ -279,6 +291,11 @@ app.component('GlobalButton', GlobalButton)
 </template>
 
 <style scoped>
+.compare-grid { display: flex; gap: 16px; margin-top: 8px; }
+.compare-col { flex: 1; padding: 14px; border-radius: 8px; border: 1px solid #e9ecef; background: white; }
+.compare-col h4 { margin: 0 0 8px; font-size: 14px; color: #42b883; }
+.compare-col.bad { background: #fff5f5; border: 2px solid #f4433633; }
+.compare-col.good { background: #f0faf5; border: 2px solid #42b88333; }
 .demo-box { padding: 12px; background: #e8f5e9; border-radius: 8px; margin: 8px 0; }
 .bool-demo { display: flex; gap: 16px; margin: 12px 0; flex-wrap: wrap; }
 .bool-item { flex: 1; min-width: 200px; }

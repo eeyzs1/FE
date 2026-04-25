@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref, computed, nextTick, shallowRef, shallowReactive, triggerRef, defineAsyncComponent, effectScope, onScopeDispose, getCurrentScope, watchEffect } from 'vue'
+import { ref, computed, nextTick, shallowRef, shallowReactive, triggerRef, defineAsyncComponent, effectScope, onScopeDispose, watchEffect } from 'vue'
+import DemoBox from '../components/DemoBox.vue'
 
 // ==================== 第12课：异步组件 + effectScope + nextTick + shallowRef ====================
 
@@ -106,7 +107,8 @@ function createScope() {
     addScopeLog('⚠️ 作用域已存在，请先停止')
     return
   }
-  sharedScope = effectScope(() => {
+  sharedScope = effectScope()
+  sharedScope.run(() => {
     const count = ref(0)
     const doubled = computed(() => count.value * 2)
     const timer = setInterval(() => {
@@ -117,9 +119,6 @@ function createScope() {
       addScopeLog('🧹 effectScope 已清理：定时器已清除')
     })
     scopeData.value = { count: count.value, doubled: doubled.value }
-    // 注意：这里用 watchEffect 将 effectScope 内部变量同步到外部 ref
-    // 因为 effectScope 内部变量无法直接在模板中使用，所以需要手动同步
-    // 这不是推荐模式，仅用于演示 effectScope 的作用域隔离特性
     watchEffect(() => {
       if (scopeData.value) {
         scopeData.value.count = count.value
@@ -142,6 +141,20 @@ function stopScope() {
   scopeActive.value = false
   addScopeLog('🛑 effectScope 已停止')
 }
+
+const codeEffectScope = `// effectScope 将副作用分组管理
+const scope = effectScope()
+scope.run(() => {
+  const count = ref(0)
+  const doubled = computed(() => count.value * 2)
+  const timer = setInterval(() => count.value++, 1000)
+
+  // 作用域销毁时自动清理
+  onScopeDispose(() => clearInterval(timer))
+})
+
+// 一次性清理所有副作用
+scope.stop()  // 清除 timer + computed + watch`
 </script>
 
 <template>
@@ -237,20 +250,22 @@ function stopScope() {
         <div class="log-area">
           <p v-for="(log, i) in scopeLog" :key="i" class="log-item">{{ log }}</p>
         </div>
-        <div class="code-block">
-          <pre>// effectScope 将副作用分组管理
-const scope = effectScope(() => {
-  const count = ref(0)
-  const doubled = computed(() => count.value * 2)
-  const timer = setInterval(() => count.value++, 1000)
-
-  // 作用域销毁时自动清理
-  onScopeDispose(() => clearInterval(timer))
-})
-
-// 一次性清理所有副作用
-scope.stop()  // 清除 timer + computed + watch</pre>
-        </div>
+        <DemoBox title="effectScope — 响应式作用域管理" :code="codeEffectScope">
+          <div class="btn-group">
+            <button @click="createScope" :disabled="scopeActive">🟢 创建作用域</button>
+            <button @click="stopScope" :disabled="!scopeActive" class="warn">🔴 停止作用域</button>
+          </div>
+          <div v-if="scopeData" class="scope-demo">
+            <p>作用域内 count = <strong>{{ scopeData.count }}</strong>，doubled = <strong>{{ scopeData.doubled }}</strong></p>
+            <p class="tip">定时器每秒自增，停止作用域后定时器和 computed 一起清理</p>
+          </div>
+          <div v-else class="scope-demo">
+            <p class="tip">点击"创建作用域"开始演示</p>
+          </div>
+          <div class="log-area">
+            <p v-for="(log, i) in scopeLog" :key="i" class="log-item">{{ log }}</p>
+          </div>
+        </DemoBox>
         <p class="tip">适用场景：composable 中创建多个 watch/computed，需要统一清理时</p>
       </div>
     </div>
