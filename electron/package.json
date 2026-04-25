@@ -1,4 +1,20 @@
 {
+	"name": "electron-master-tutorial",
+	"version": "1.0.0",
+	"description": "Electron 大师教程 - 从入门到精通",
+	"main": "ch02-quick-start/main.js",
+	"scripts": {
+		"ch02": "electron ch02-quick-start/main.js",
+		"ch03": "electron ch03-ipc/main.js",
+		"ch04": "electron ch04-window/main.js",
+		"ch05": "electron ch05-lifecycle/main.js",
+		"ch06": "electron ch06-menu-dialog-tray/main.js",
+		"ch07": "electron ch07-security/main.js",
+		"ch08": "electron ch08-data-persistence/main.js",
+		"ch09": "electron ch09-packaging/main.js",
+		"ch10": "electron ch10-debug-perf/main.js",
+		"ch11": "electron ch11-advanced/main.js"
+	},
 	"devDependencies": {
 		"electron": "^41.0.4"
 	}

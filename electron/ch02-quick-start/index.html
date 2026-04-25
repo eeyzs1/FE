@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'">
+  <title>我的第一个 Electron 应用</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      overflow: hidden;
+    }
+    h1 {
+      font-size: 2.5em;
+      margin-bottom: 0.5em;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    }
+    .subtitle {
+      font-size: 1.2em;
+      opacity: 0.9;
+      margin-bottom: 2em;
+    }
+    .info-card {
+      background: rgba(255,255,255,0.15);
+      backdrop-filter: blur(10px);
+      border-radius: 12px;
+      padding: 1.5em 2em;
+      margin-bottom: 1em;
+      min-width: 400px;
+    }
+    .info-card h3 {
+      margin-bottom: 0.8em;
+      font-size: 1.1em;
+    }
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 0.4em 0;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    .info-row:last-child { border-bottom: none; }
+    .info-label { opacity: 0.8; }
+    .info-value { font-weight: 600; }
+    .badge {
+      display: inline-block;
+      background: rgba(255,255,255,0.2);
+      padding: 0.3em 0.8em;
+      border-radius: 20px;
+      font-size: 0.85em;
+      margin-top: 1em;
+    }
+  </style>
+</head>
+<body>
+  <h1>🚀 Hello Electron!</h1>
+  <p class="subtitle">欢迎来到你的第一个 Electron 应用</p>
+
+  <div class="info-card">
+    <h3>📋 运行环境信息</h3>
+    <div class="info-row">
+      <span class="info-label">平台</span>
+      <span class="info-value" id="platform">-</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">Node.js</span>
+      <span class="info-value" id="node-version">-</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">Chromium</span>
+      <span class="info-value" id="chrome-version">-</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">Electron</span>
+      <span class="info-value" id="electron-version">-</span>
+    </div>
+  </div>
+
+  <div class="badge">第2章：快速入门</div>
+
+  <script src="./renderer.js"></script>
+</body>
+</html>

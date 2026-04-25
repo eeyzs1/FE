@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'">
+  <title>第5章：应用生命周期与系统交互</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0d1117;
+      color: #c9d1d9;
+      padding: 20px;
+      overflow-y: auto;
+    }
+    h1 { color: #58a6ff; margin-bottom: 5px; }
+    .subtitle { opacity: 0.7; margin-bottom: 20px; font-size: 0.9em; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+    .section {
+      background: #161b22;
+      border-radius: 10px;
+      padding: 20px;
+      border: 1px solid #30363d;
+    }
+    .section.full-width { grid-column: 1 / -1; }
+    .section h2 { color: #58a6ff; margin-bottom: 12px; font-size: 1em; }
+    .section p { margin-bottom: 10px; font-size: 0.85em; line-height: 1.5; }
+    button {
+      background: #238636;
+      color: white;
+      border: none;
+      padding: 8px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.85em;
+      margin: 3px;
+      transition: all 0.2s;
+    }
+    button:hover { background: #2ea043; }
+    button.danger { background: #da3633; }
+    button.danger:hover { background: #f85149; }
+    button.info { background: #1f6feb; }
+    button.info:hover { background: #388bfd; }
+    .output {
+      background: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      padding: 10px;
+      margin-top: 8px;
+      font-family: 'Consolas', monospace;
+      font-size: 0.8em;
+      white-space: pre-wrap;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    .path-list { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+    .path-item {
+      background: #0d1117;
+      border: 1px solid #30363d;
+      padding: 8px;
+      border-radius: 4px;
+      font-size: 0.8em;
+    }
+    .path-key { color: #58a6ff; font-weight: 600; }
+    .path-value { color: #8b949e; word-break: break-all; }
+    .input-group {
+      display: flex;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .input-group input {
+      flex: 1;
+      background: #0d1117;
+      border: 1px solid #30363d;
+      color: #c9d1d9;
+      padding: 8px;
+      border-radius: 6px;
+      font-size: 0.85em;
+    }
+  </style>
+</head>
+<body>
+  <h1>⚙️ 第5章：应用生命周期与系统交互</h1>
+  <p class="subtitle">掌握 app 模块与系统级 API</p>
+
+  <div class="grid">
+    <div class="section full-width">
+      <h2>📋 应用信息与系统路径</h2>
+      <button class="info" id="btn-app-info">获取应用信息</button>
+      <div class="path-list" id="path-list"></div>
+    </div>
+
+    <div class="section">
+      <h2>🌐 外部链接与文件</h2>
+      <p>使用 shell API 在默认程序中打开链接或文件。</p>
+      <button class="info" id="btn-open-url">打开 Electron 官网</button>
+      <button class="info" id="btn-open-desktop">打开桌面文件夹</button>
+    </div>
+
+    <div class="section">
+      <h2>📋 剪贴板操作</h2>
+      <p>读写系统剪贴板内容。</p>
+      <div class="input-group">
+        <input type="text" id="clipboard-input" placeholder="输入要复制的内容">
+        <button id="btn-clipboard-write">复制</button>
+      </div>
+      <button id="btn-clipboard-read" style="margin-top:8px">读取剪贴板</button>
+      <div class="output" id="clipboard-output">等待操作...</div>
+    </div>
+
+    <div class="section">
+      <h2>ℹ️ 关于面板</h2>
+      <p>显示系统原生的关于面板。</p>
+      <button class="info" id="btn-about">显示关于面板</button>
+    </div>
+
+    <div class="section">
+      <h2>🖥️ GPU 信息</h2>
+      <p>获取 GPU 硬件和驱动信息。</p>
+      <button class="info" id="btn-gpu">获取 GPU 信息</button>
+      <div class="output" id="gpu-output">等待获取...</div>
+    </div>
+
+    <div class="section">
+      <h2>🔄 重启应用</h2>
+      <p>使用 app.relaunch() 重启应用。</p>
+      <button class="danger" id="btn-relaunch">重启应用</button>
+    </div>
+  </div>
+
+  <script src="./renderer.js"></script>
+</body>
+</html>

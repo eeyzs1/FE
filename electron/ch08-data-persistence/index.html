@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'">
+  <title>第8章：数据持久化与文件系统</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #004d40;
+      color: #e0e0e0;
+      padding: 20px;
+      overflow-y: auto;
+    }
+    h1 { color: #64ffda; margin-bottom: 5px; }
+    .subtitle { opacity: 0.7; margin-bottom: 20px; font-size: 0.9em; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+    .section {
+      background: #00695c;
+      border-radius: 10px;
+      padding: 20px;
+      border: 1px solid rgba(100,255,218,0.2);
+    }
+    .section.full-width { grid-column: 1 / -1; }
+    .section h2 { color: #64ffda; margin-bottom: 10px; font-size: 1em; }
+    .section p { margin-bottom: 8px; font-size: 0.85em; line-height: 1.5; }
+    button {
+      background: #64ffda;
+      color: #004d40;
+      border: none;
+      padding: 8px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.85em;
+      margin: 3px;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+    button:hover { background: #a7ffeb; }
+    .output {
+      background: #002e27;
+      border-radius: 6px;
+      padding: 10px;
+      margin-top: 8px;
+      font-family: 'Consolas', monospace;
+      font-size: 0.8em;
+      white-space: pre-wrap;
+      max-height: 250px;
+      overflow-y: auto;
+    }
+    .input-group {
+      display: flex;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .input-group input, .input-group textarea {
+      flex: 1;
+      background: #002e27;
+      border: 1px solid #64ffda;
+      color: #e0e0e0;
+      padding: 8px;
+      border-radius: 6px;
+      font-size: 0.85em;
+    }
+    .file-list {
+      background: #002e27;
+      border-radius: 6px;
+      padding: 8px;
+      margin-top: 8px;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    .file-item {
+      padding: 6px 8px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.85em;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .file-item:hover { background: rgba(100,255,218,0.1); }
+    .file-icon { font-size: 1.1em; }
+    .current-path {
+      background: #002e27;
+      padding: 6px 10px;
+      border-radius: 4px;
+      font-family: 'Consolas', monospace;
+      font-size: 0.8em;
+      color: #64ffda;
+      margin-bottom: 8px;
+    }
+  </style>
+</head>
+<body>
+  <h1>💾 第8章：数据持久化与文件系统</h1>
+  <p class="subtitle">掌握 Electron 中的数据存储与文件操作</p>
+
+  <div class="grid">
+    <div class="section full-width">
+      <h2>📦 键值存储 (Store)</h2>
+      <p>基于 JSON 文件的键值存储，数据保存在 userData 目录。支持嵌套键访问。</p>
+      <div class="input-group">
+        <input type="text" id="store-key" placeholder="键 (如 settings.fontSize)">
+        <input type="text" id="store-value" placeholder="值">
+        <button id="btn-store-set">设置</button>
+        <button id="btn-store-get">获取</button>
+        <button id="btn-store-delete">删除</button>
+      </div>
+      <button id="btn-store-all" style="margin-top:8px">查看全部数据</button>
+      <div class="output" id="store-output">等待操作...</div>
+    </div>
+
+    <div class="section full-width">
+      <h2>📂 文件浏览器</h2>
+      <div class="current-path" id="current-path">加载中...</div>
+      <button id="btn-home">Home</button>
+      <button id="btn-desktop">桌面</button>
+      <button id="btn-documents">文档</button>
+      <button id="btn-downloads">下载</button>
+      <div class="file-list" id="file-list"></div>
+      <div class="output" id="file-content" style="display:none"></div>
+    </div>
+
+    <div class="section">
+      <h2>📝 写入文件</h2>
+      <div class="input-group" style="flex-direction:column">
+        <input type="text" id="write-path" placeholder="文件路径">
+        <textarea id="write-content" rows="4" placeholder="文件内容" style="background:#002e27;border:1px solid #64ffda;color:#e0e0e0;padding:8px;border-radius:6px;font-size:0.85em;resize:vertical"></textarea>
+      </div>
+      <button id="btn-write" style="margin-top:8px">写入文件</button>
+      <div class="output" id="write-output">等待操作...</div>
+    </div>
+
+    <div class="section">
+      <h2>📊 数据路径</h2>
+      <p>Electron 应用的标准数据目录。</p>
+      <button id="btn-paths">获取路径</button>
+      <div class="output" id="paths-output">等待获取...</div>
+    </div>
+  </div>
+
+  <script src="./renderer.js"></script>
+</body>
+</html>

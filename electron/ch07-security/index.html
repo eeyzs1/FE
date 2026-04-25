@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'">
+  <title>第7章：安全最佳实践</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #1a1a1a;
+      color: #e0e0e0;
+      padding: 20px;
+      overflow-y: auto;
+    }
+    h1 { color: #f44336; margin-bottom: 5px; }
+    .subtitle { opacity: 0.7; margin-bottom: 20px; font-size: 0.9em; }
+    .section {
+      background: #2d2d2d;
+      border-radius: 10px;
+      padding: 20px;
+      margin-bottom: 15px;
+      border-left: 4px solid #f44336;
+    }
+    .section h2 { color: #f44336; margin-bottom: 10px; font-size: 1em; }
+    .section p { margin-bottom: 8px; font-size: 0.85em; line-height: 1.6; }
+    .security-item {
+      background: #1a1a1a;
+      border-radius: 6px;
+      padding: 12px;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .status {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .status.safe { background: #4caf50; }
+    .status.danger { background: #f44336; }
+    .status.warning { background: #ff9800; }
+    .config-key { color: #64b5f6; font-weight: 600; min-width: 200px; }
+    .config-value { font-family: 'Consolas', monospace; }
+    .config-value.good { color: #4caf50; }
+    .config-value.bad { color: #f44336; }
+    button {
+      background: #f44336;
+      color: white;
+      border: none;
+      padding: 8px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.85em;
+      margin: 3px;
+      transition: all 0.2s;
+    }
+    button:hover { background: #e53935; }
+    button.test { background: #2196f3; }
+    button.test:hover { background: #1e88e5; }
+    .output {
+      background: #1a1a1a;
+      border-radius: 6px;
+      padding: 10px;
+      margin-top: 8px;
+      font-family: 'Consolas', monospace;
+      font-size: 0.8em;
+      white-space: pre-wrap;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    .input-group {
+      display: flex;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .input-group input {
+      flex: 1;
+      background: #1a1a1a;
+      border: 1px solid #555;
+      color: #e0e0e0;
+      padding: 8px;
+      border-radius: 6px;
+      font-size: 0.85em;
+    }
+    .rule {
+      background: #1a1a1a;
+      border-radius: 6px;
+      padding: 10px 12px;
+      margin-bottom: 6px;
+      font-size: 0.85em;
+      line-height: 1.5;
+    }
+    .rule-number {
+      display: inline-block;
+      background: #f44336;
+      color: white;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      text-align: center;
+      line-height: 22px;
+      font-size: 0.75em;
+      margin-right: 8px;
+    }
+    .csp-item {
+      background: #1a1a1a;
+      padding: 8px 12px;
+      border-radius: 4px;
+      margin-bottom: 4px;
+      font-family: 'Consolas', monospace;
+      font-size: 0.8em;
+    }
+  </style>
+</head>
+<body>
+  <h1>🛡️ 第7章：安全最佳实践</h1>
+  <p class="subtitle">Electron 安全的七大原则 — 成为大师的必经之路</p>
+
+  <div class="section">
+    <h2>🔒 当前安全配置检查</h2>
+    <div id="security-check"></div>
+    <button id="btn-check">刷新安全检查</button>
+  </div>
+
+  <div class="section">
+    <h2>📋 安全七大原则</h2>
+    <div class="rule"><span class="rule-number">1</span><strong>上下文隔离 (Context Isolation)</strong> — Preload 与渲染进程运行在不同上下文，防止恶意代码访问特权 API</div>
+    <div class="rule"><span class="rule-number">2</span><strong>禁用 Node.js 集成</strong> — 渲染进程不应直接使用 require()，通过 contextBridge 安全暴露</div>
+    <div class="rule"><span class="rule-number">3</span><strong>启用沙箱</strong> — 限制渲染进程对系统资源的访问</div>
+    <div class="rule"><span class="rule-number">4</span><strong>内容安全策略 (CSP)</strong> — 限制资源加载来源，防止 XSS</div>
+    <div class="rule"><span class="rule-number">5</span><strong>不加载远程内容</strong> — 优先加载本地文件，不禁用同源策略</div>
+    <div class="rule"><span class="rule-number">6</span><strong>安全的 IPC</strong> — 不暴露整个 ipcRenderer，为每个通道创建封装</div>
+    <div class="rule"><span class="rule-number">7</span><strong>验证输入</strong> — 永远不信任渲染进程数据，防止注入攻击</div>
+  </div>
+
+  <div class="section">
+    <h2>🧪 输入验证测试</h2>
+    <p>测试路径验证：主进程会检查路径遍历攻击和目录限制。</p>
+    <div class="input-group">
+      <input type="text" id="path-input" placeholder="输入文件路径进行验证测试">
+      <button class="test" id="btn-validate">验证</button>
+    </div>
+    <div class="output" id="validation-output">等待测试...</div>
+    <p style="margin-top:8px">试试这些测试用例：</p>
+    <button class="test" onclick="testPath('C:\\Users\\test\\file.txt')">正常路径</button>
+    <button class="test" onclick="testPath('../../../etc/passwd')">路径遍历攻击</button>
+    <button class="test" onclick="testPath('')">空路径</button>
+    <button class="test" onclick="testPath(null)">null 输入</button>
+    <button class="test" onclick="testPath(undefined)">undefined 输入</button>
+  </div>
+
+  <div class="section">
+    <h2>📝 CSP (内容安全策略)</h2>
+    <div id="csp-info"></div>
+  </div>
+
+  <script src="./renderer.js"></script>
+</body>
+</html>

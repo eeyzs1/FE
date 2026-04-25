@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'">
+  <title>第4章：窗口管理</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #1a1a2e;
+      color: #e0e0e0;
+      padding: 20px;
+      overflow-y: auto;
+    }
+    h1 { color: #00d2ff; margin-bottom: 5px; }
+    .subtitle { opacity: 0.7; margin-bottom: 20px; font-size: 0.9em; }
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+    }
+    .section {
+      background: #16213e;
+      border-radius: 10px;
+      padding: 20px;
+      border-left: 4px solid #00d2ff;
+    }
+    .section.full-width { grid-column: 1 / -1; }
+    .section h2 {
+      color: #00d2ff;
+      margin-bottom: 10px;
+      font-size: 1em;
+    }
+    .section p { margin-bottom: 10px; font-size: 0.85em; line-height: 1.5; }
+    button {
+      background: #00d2ff;
+      color: #1a1a2e;
+      border: none;
+      padding: 8px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.85em;
+      margin: 3px;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+    button:hover { background: #33ddff; transform: translateY(-1px); }
+    .output {
+      background: #0f3460;
+      border-radius: 6px;
+      padding: 10px;
+      margin-top: 8px;
+      font-family: 'Consolas', monospace;
+      font-size: 0.8em;
+      white-space: pre-wrap;
+      max-height: 150px;
+      overflow-y: auto;
+    }
+    .window-info {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+    }
+    .info-item {
+      background: #0f3460;
+      padding: 6px 10px;
+      border-radius: 4px;
+      font-size: 0.8em;
+      display: flex;
+      justify-content: space-between;
+    }
+    .info-label { opacity: 0.7; }
+    .info-value { color: #00d2ff; font-weight: 600; }
+    .event-log {
+      background: #0f3460;
+      border-radius: 6px;
+      padding: 10px;
+      margin-top: 8px;
+      font-size: 0.8em;
+      max-height: 120px;
+      overflow-y: auto;
+    }
+    .event-item {
+      padding: 3px 0;
+      border-bottom: 1px solid rgba(0,210,255,0.1);
+    }
+    .event-name { color: #00d2ff; }
+  </style>
+</head>
+<body>
+  <h1>🪟 第4章：窗口管理深度解析</h1>
+  <p class="subtitle">掌握 BrowserWindow 的所有核心能力</p>
+
+  <div class="grid">
+    <div class="section full-width">
+      <h2>📊 当前窗口信息</h2>
+      <div class="window-info" id="window-info">
+        <div class="info-item"><span class="info-label">宽度</span><span class="info-value" id="w-width">-</span></div>
+        <div class="info-item"><span class="info-label">高度</span><span class="info-value" id="w-height">-</span></div>
+        <div class="info-item"><span class="info-label">X 坐标</span><span class="info-value" id="w-x">-</span></div>
+        <div class="info-item"><span class="info-label">Y 坐标</span><span class="info-value" id="w-y">-</span></div>
+        <div class="info-item"><span class="info-label">是否最大化</span><span class="info-value" id="w-maximized">-</span></div>
+        <div class="info-item"><span class="info-label">是否置顶</span><span class="info-value" id="w-ontop">-</span></div>
+      </div>
+      <button id="btn-refresh-info">刷新信息</button>
+      <button id="btn-minimize">最小化</button>
+      <button id="btn-maximize">最大化/还原</button>
+      <button id="btn-ontop">切换置顶</button>
+    </div>
+
+    <div class="section">
+      <h2>👶 子窗口</h2>
+      <p>子窗口始终显示在父窗口之上，跟随父窗口移动。</p>
+      <button id="btn-child">创建子窗口</button>
+    </div>
+
+    <div class="section">
+      <h2>🔲 无边框窗口</h2>
+      <p>无边框窗口没有标题栏和边框，适合自定义 UI。</p>
+      <button id="btn-frameless">创建无边框窗口</button>
+    </div>
+
+    <div class="section">
+      <h2>🔒 模态窗口</h2>
+      <p>模态窗口会阻止与父窗口的交互，直到关闭。</p>
+      <button id="btn-modal">创建模态窗口</button>
+    </div>
+
+    <div class="section">
+      <h2>💎 透明窗口</h2>
+      <p>透明窗口可以实现不规则形状和半透明效果。</p>
+      <button id="btn-transparent">创建透明窗口</button>
+    </div>
+
+    <div class="section full-width">
+      <h2>📋 窗口事件日志</h2>
+      <div class="event-log" id="event-log">
+        <div class="event-item">等待窗口事件...</div>
+      </div>
+    </div>
+  </div>
+
+  <script src="./renderer.js"></script>
+</body>
+</html>

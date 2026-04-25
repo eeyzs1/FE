@@ -8,9 +8,6 @@ importers:
 
   .:
     dependencies:
-      solid-antd:
-        specifier: ^0.0.1
-        version: 0.0.1
       solid-js:
         specifier: ^1.9.11
         version: 1.9.11
@@ -477,9 +474,6 @@ packages:
   seroval@1.5.1:
     resolution: {integrity: sha512-OwrZRZAfhHww0WEnKHDY8OM0U/Qs8OTfIDWhUD4BLpNJUfXK4cGmjiagGze086m+mhI+V2nD0gfbHEnJjb9STA==}
     engines: {node: '>=10'}
-
-  solid-antd@0.0.1:
-    resolution: {integrity: sha512-mKWxgBcFqEbbYzsCB6A9zwWD5ywVxzdukGqTf1G5F8Y0yVbtLl1y3HVvInO9CxcRQ1sY0nUXn0L3wYWfasbL9A==}
 
   solid-js@1.9.11:
     resolution: {integrity: sha512-WEJtcc5mkh/BnHA6Yrg4whlF8g6QwpmXXRg4P2ztPmcKeHHlH4+djYecBLhSpecZY2RRECXYUwIc/C2r3yzQ4Q==}
@@ -982,8 +976,6 @@ snapshots:
       seroval: 1.5.1
 
   seroval@1.5.1: {}
-
-  solid-antd@0.0.1: {}
 
   solid-js@1.9.11:
     dependencies:

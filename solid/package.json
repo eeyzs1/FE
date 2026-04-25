@@ -9,7 +9,6 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "solid-antd": "^0.0.1",
     "solid-js": "^1.9.11"
   },
   "devDependencies": {

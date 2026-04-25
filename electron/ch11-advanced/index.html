@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'">
+  <title>第11章：高级主题</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #bf360c;
+      color: #e0e0e0;
+      padding: 20px;
+      overflow-y: auto;
+    }
+    h1 { color: #ffab91; margin-bottom: 5px; }
+    .subtitle { opacity: 0.7; margin-bottom: 20px; font-size: 0.9em; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+    .section {
+      background: #d84315;
+      border-radius: 10px;
+      padding: 20px;
+      border: 1px solid rgba(255,171,145,0.3);
+    }
+    .section.full-width { grid-column: 1 / -1; }
+    .section h2 { color: #ffab91; margin-bottom: 10px; font-size: 1em; }
+    .section p { margin-bottom: 8px; font-size: 0.85em; line-height: 1.5; }
+    button {
+      background: #ffab91;
+      color: #bf360c;
+      border: none;
+      padding: 8px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.85em;
+      margin: 3px;
+      font-weight: 600;
+    }
+    button:hover { background: #ffccbc; }
+    .output {
+      background: #6d1b00;
+      border-radius: 6px;
+      padding: 10px;
+      margin-top: 8px;
+      font-family: 'Consolas', monospace;
+      font-size: 0.8em;
+      white-space: pre-wrap;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    .theme-buttons { display: flex; gap: 8px; margin-top: 8px; }
+    .theme-btn {
+      padding: 10px 20px;
+      border-radius: 8px;
+      border: 2px solid transparent;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+    .theme-btn.active { border-color: #ffab91; }
+    .theme-btn.dark { background: #333; color: white; }
+    .theme-btn.light { background: #f5f5f5; color: #333; }
+    .theme-btn.system { background: linear-gradient(135deg, #333 50%, #f5f5f5 50%); color: transparent; }
+    .event-log {
+      background: #6d1b00;
+      border-radius: 6px;
+      padding: 10px;
+      margin-top: 8px;
+      max-height: 120px;
+      overflow-y: auto;
+      font-size: 0.85em;
+    }
+    .event-item { padding: 4px 0; border-bottom: 1px solid rgba(255,171,145,0.1); }
+    .event-type { color: #ffab91; font-weight: 600; }
+    .input-group {
+      display: flex;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .input-group input {
+      flex: 1;
+      background: #6d1b00;
+      border: 1px solid #ffab91;
+      color: #e0e0e0;
+      padding: 8px;
+      border-radius: 6px;
+      font-size: 0.85em;
+    }
+    .drop-zone {
+      border: 2px dashed rgba(255,171,145,0.5);
+      border-radius: 10px;
+      padding: 30px;
+      text-align: center;
+      margin-top: 8px;
+      transition: all 0.2s;
+      font-size: 0.9em;
+    }
+    .drop-zone.drag-over {
+      border-color: #ffab91;
+      background: rgba(255,171,145,0.1);
+    }
+  </style>
+</head>
+<body>
+  <h1>🚀 第11章：高级主题与实战项目</h1>
+  <p class="subtitle">掌握 Electron 的高级能力</p>
+
+  <div class="grid">
+    <div class="section">
+      <h2>⚡ UtilityProcess — CPU 密集型任务</h2>
+      <p>在独立进程中运行计算，不阻塞主进程和 UI。</p>
+      <button id="btn-compute-light">轻量计算 (100万次)</button>
+      <button id="btn-compute-heavy">重量计算 (1000万次)</button>
+      <div class="output" id="compute-output">等待计算...</div>
+    </div>
+
+    <div class="section">
+      <h2>🎨 系统主题</h2>
+      <p>监听和切换系统暗色/亮色主题。</p>
+      <div class="theme-buttons">
+        <button class="theme-btn dark" id="btn-dark">暗色</button>
+        <button class="theme-btn light" id="btn-light">亮色</button>
+        <button class="theme-btn system" id="btn-system">跟随系统</button>
+      </div>
+      <div class="output" id="theme-output">等待操作...</div>
+    </div>
+
+    <div class="section">
+      <h2>🔋 电源监控</h2>
+      <p>监听系统电源状态变化。</p>
+      <button id="btn-power">获取电源状态</button>
+      <div class="event-log" id="power-log">
+        <div class="event-item">等待电源事件...</div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>🖥️ 屏幕信息</h2>
+      <p>获取显示器和光标信息。</p>
+      <button id="btn-screen">获取屏幕信息</button>
+      <div class="output" id="screen-output">等待获取...</div>
+    </div>
+
+    <div class="section">
+      <h2>⌨️ 全局快捷键</h2>
+      <p>注册全局快捷键，即使应用不在焦点也能响应。</p>
+      <div class="input-group">
+        <input type="text" id="shortcut-input" placeholder="例如: CommandOrControl+Shift+L">
+        <button id="btn-register-shortcut">注册</button>
+        <button id="btn-unregister-shortcut">注销</button>
+      </div>
+      <div class="output" id="shortcut-output">等待操作...</div>
+    </div>
+
+    <div class="section">
+      <h2>🪟 多窗口通信</h2>
+      <p>打开第二窗口并在窗口间发送消息。</p>
+      <button id="btn-open-window">打开第二窗口</button>
+      <div class="input-group">
+        <input type="text" id="window-message" placeholder="输入消息">
+        <button id="btn-send-message">发送</button>
+      </div>
+      <div class="output" id="window-output">等待操作...</div>
+    </div>
+
+    <div class="section">
+      <h2>📂 文件拖放</h2>
+      <p>将文件拖入下方区域，或查看拖放代码示例。</p>
+      <button id="btn-drag-drop">查看代码示例</button>
+      <div class="drop-zone" id="drop-zone">📁 拖放文件到此处</div>
+      <div class="output" id="drag-drop-output">等待拖放...</div>
+    </div>
+
+    <div class="section">
+      <h2>🎓 恭喜！你已经完成了 Electron 大师教程</h2>
+      <p>通过这 11 章的学习，你已经掌握了：</p>
+      <p>✅ Electron 进程模型与架构</p>
+      <p>✅ IPC 通信的所有模式</p>
+      <p>✅ 窗口管理与自定义</p>
+      <p>✅ 应用生命周期控制</p>
+      <p>✅ 原生菜单、对话框、托盘</p>
+      <p>✅ 安全最佳实践</p>
+      <p>✅ 数据持久化与文件系统</p>
+      <p>✅ 打包与分发</p>
+      <p>✅ 调试与性能优化</p>
+      <p>✅ 高级特性（UtilityProcess、主题、电源、快捷键、多窗口、拖放）</p>
+      <p style="margin-top:10px;font-size:1em;color:#ffab91;font-weight:600">现在，去构建你自己的 Electron 应用吧！🚀</p>
+    </div>
+  </div>
+
+  <script src="./renderer.js"></script>
+</body>
+</html>

@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'">
+  <title>第9章：打包与分发</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #311b92;
+      color: #e0e0e0;
+      padding: 20px;
+      overflow-y: auto;
+    }
+    h1 { color: #b388ff; margin-bottom: 5px; }
+    .subtitle { opacity: 0.7; margin-bottom: 20px; font-size: 0.9em; }
+    .section {
+      background: #4527a0;
+      border-radius: 10px;
+      padding: 20px;
+      margin-bottom: 15px;
+      border: 1px solid rgba(179,136,255,0.3);
+    }
+    .section h2 { color: #b388ff; margin-bottom: 10px; font-size: 1em; }
+    .section p { margin-bottom: 8px; font-size: 0.85em; line-height: 1.6; }
+    .code-block {
+      background: #1a0050;
+      border-radius: 6px;
+      padding: 12px;
+      margin: 8px 0;
+      font-family: 'Consolas', monospace;
+      font-size: 0.8em;
+      white-space: pre-wrap;
+      overflow-x: auto;
+    }
+    .step {
+      background: #1a0050;
+      border-radius: 6px;
+      padding: 12px;
+      margin: 8px 0;
+      border-left: 3px solid #b388ff;
+    }
+    .step-title { color: #b388ff; font-weight: 600; margin-bottom: 6px; }
+    .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .info-item {
+      background: #1a0050;
+      padding: 8px 12px;
+      border-radius: 4px;
+      font-size: 0.85em;
+    }
+    .info-key { color: #b388ff; }
+    .info-value { color: #e0e0e0; font-family: 'Consolas', monospace; word-break: break-all; }
+    button {
+      background: #b388ff;
+      color: #311b92;
+      border: none;
+      padding: 8px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.85em;
+      font-weight: 600;
+      margin: 3px;
+    }
+    button:hover { background: #d1c4e9; }
+    .output {
+      background: #1a0050;
+      border-radius: 6px;
+      padding: 10px;
+      margin-top: 8px;
+      font-family: 'Consolas', monospace;
+      font-size: 0.8em;
+      white-space: pre-wrap;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+  </style>
+</head>
+<body>
+  <h1>📦 第9章：打包与分发</h1>
+  <p class="subtitle">将你的应用交付给用户</p>
+
+  <div class="section">
+    <h2>📊 当前应用信息</h2>
+    <button id="btn-info">获取打包信息</button>
+    <div class="info-grid" id="app-info" style="margin-top:10px"></div>
+  </div>
+
+  <div class="section">
+    <h2>🔄 自动更新</h2>
+    <p>autoUpdater 可以自动检查、下载和安装更新。仅在打包后的应用中可用。</p>
+    <button id="btn-check-update">检查更新</button>
+    <div class="output" id="update-output">等待操作...</div>
+  </div>
+
+  <div class="section">
+    <h2>🛠️ Electron Forge 打包流程</h2>
+    <div class="step">
+      <div class="step-title">步骤 1：安装 Forge</div>
+      <div class="code-block">pnpm add -D @electron-forge/cli
+npx electron-forge import</div>
+    </div>
+    <div class="step">
+      <div class="step-title">步骤 2：配置 forge.config.js</div>
+      <div class="code-block">module.exports = {
+  packagerConfig: {
+    name: 'MyApp',
+    icon: './assets/icon',  // 不带扩展名
+    asar: true,
+  },
+  makers: [
+    { name: '@electron-forge/maker-squirrel', config: { name: 'my_app' } },
+    { name: '@electron-forge/maker-zip', platforms: ['darwin'] },
+    { name: '@electron-forge/maker-deb', config: {} },
+    { name: '@electron-forge/maker-rpm', config: {} },
+  ],
+  publishers: [
+    {
+      name: '@electron-forge/publisher-github',
+      config: {
+        repository: { owner: 'your-username', name: 'your-repo' },
+        prerelease: false,
+      },
+    },
+  ],
+}</div>
+    </div>
+    <div class="step">
+      <div class="step-title">步骤 3：打包</div>
+      <div class="code-block">npx electron-forge package</div>
+    </div>
+    <div class="step">
+      <div class="step-title">步骤 4：生成安装包</div>
+      <div class="code-block">npx electron-forge make</div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>🔄 自动更新代码示例</h2>
+    <p>在主进程中使用 autoUpdater 实现自动更新：</p>
+    <div class="code-block">const { autoUpdater } = require('electron')
+
+// 配置更新源
+autoUpdater.setFeedURL({
+  provider: 'github',
+  owner: 'your-username',
+  repo: 'your-repo',
+})
+
+// 检查更新
+autoUpdater.checkForUpdates()
+
+// 监听事件
+autoUpdater.on('update-available', (info) => {
+  console.log('发现新版本:', info.version)
+})
+
+autoUpdater.on('download-progress', (progress) => {
+  console.log(`下载进度: ${progress.percent.toFixed(1)}%`)
+})
+
+autoUpdater.on('update-downloaded', () => {
+  // 提示用户重启安装
+  autoUpdater.quitAndInstall()
+})</div>
+  </div>
+
+  <div class="section">
+    <h2>🔐 代码签名</h2>
+    <p><strong>Windows:</strong> 需要代码签名证书（EV 或 OV），可从 DigiCert、Sectigo 等购买。</p>
+    <p><strong>macOS:</strong> 需要 Apple Developer 账号，使用 codesign 和 notarytool 签名和公证。</p>
+    <div class="code-block">// macOS 签名和公证
+codesign --deep --force --sign "Developer ID Application: Your Name" MyApp.app
+xcrun notarytool submit MyApp.zip --apple-id your@email.com --team-id TEAMID --password APP_PASSWORD</div>
+  </div>
+
+  <script src="./renderer.js"></script>
+</body>
+</html>

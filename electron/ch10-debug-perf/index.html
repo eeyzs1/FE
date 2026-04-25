@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; script-src 'self'">
+  <title>第10章：调试、测试与性能优化</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <h1>🔍 第10章：调试、测试与性能优化</h1>
+  <p class="subtitle">让应用更快、更稳定、更可靠</p>
+
+  <div class="grid">
+    <div class="section">
+      <h2>📊 进程资源监控</h2>
+      <button id="btn-metrics" aria-label="获取进程指标">获取进程指标</button>
+      <div class="output" id="metrics-output">等待获取...</div>
+    </div>
+
+    <div class="section">
+      <h2>💾 主进程内存</h2>
+      <button id="btn-memory" aria-label="获取内存使用">获取内存使用</button>
+      <div class="output" id="memory-output">等待获取...</div>
+    </div>
+
+    <div class="section">
+      <h2>🖥️ GPU 特性</h2>
+      <button id="btn-gpu" aria-label="获取 GPU 状态">获取 GPU 状态</button>
+      <div class="output" id="gpu-output">等待获取...</div>
+    </div>
+
+    <div class="section">
+      <h2>🛠️ 调试工具</h2>
+      <button id="btn-devtools" aria-label="打开 DevTools">打开 DevTools</button>
+      <button id="btn-heap" aria-label="堆快照提示">堆快照提示</button>
+      <div class="output" id="debug-output">等待操作...</div>
+    </div>
+
+    <div class="section full-width">
+      <h2>⚡ 性能优化清单</h2>
+      <div class="tip">✅ 使用 show: false + ready-to-show 避免白屏闪烁</div>
+      <div class="tip">✅ 设置 backgroundColor 减少视觉闪烁</div>
+      <div class="tip">✅ 设置 backgroundThrottling: false 禁用后台节流（适用于音乐播放器等需要在后台运行的场景）</div>
+      <div class="tip">✅ 使用 webview 隔离重型内容</div>
+      <div class="tip">✅ 延迟加载非关键窗口</div>
+      <div class="tip">✅ 使用 asar 打包减少文件 I/O</div>
+      <div class="tip">✅ 避免在渲染进程中执行 CPU 密集型任务</div>
+      <div class="tip">✅ 使用 UtilityProcess 处理 CPU 密集型任务</div>
+      <div class="tip">✅ 监听 visibilitychange 事件暂停不可见页面的操作</div>
+      <div class="tip">✅ 使用 requestAnimationFrame 替代 setInterval 进行动画</div>
+    </div>
+
+    <div class="section full-width">
+      <h2>🧪 测试方法</h2>
+      <div class="tip"><strong>单元测试 (Jest):</strong> 测试独立的函数和模块</div>
+      <div class="tip"><strong>E2E 测试 (Playwright):</strong> 测试完整的用户流程</div>
+      <div class="tip"><strong>主进程测试:</strong> 使用 electron-mocha 或 rewire 模拟</div>
+      <div class="tip"><strong>渲染进程测试:</strong> 使用 Jest + jsdom 或 Playwright</div>
+    </div>
+  </div>
+
+  <script src="./renderer.js"></script>
+</body>
+</html>
